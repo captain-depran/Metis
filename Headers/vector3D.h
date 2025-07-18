@@ -10,6 +10,7 @@ class vector3D{
         double mag();
         void zero();
         vector3D unit();
+        vector3D cross(vector3D const& obj);
         vector3D operator+(vector3D const& obj);
         vector3D operator-(vector3D const& obj);
         vector3D operator*(double scalar);

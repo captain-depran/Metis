@@ -33,6 +33,14 @@ vector3D vector3D::unit(){
     return unit_vec;
 }
 
+vector3D vector3D::cross(vector3D const& obj){
+    vector3D result;
+    result.x=(y*obj.z)-(z*obj.y);
+    result.y=(z*obj.x)-(x*obj.z);
+    result.z=(x*obj.y)-(y*obj.x);
+    return result;
+}
+
 vector3D vector3D::operator+(vector3D const& obj){
     vector3D result(
         x+obj.x,
