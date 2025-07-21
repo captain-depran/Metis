@@ -3,11 +3,13 @@
 #include <chrono>
 #include <vector>
 #include "../Headers/vector3D.h"
+#include <fstream>
+#include <thread>
 using namespace std;
 using namespace std::chrono;
 
 const double Gconst = 6.6743e-11;
-double step_count;
+double block_size;
 
 class body{
     public:
@@ -22,7 +24,7 @@ class body{
 
         
         body(int id_,double mass_,double x, double y, double z, double vx, double vy, double vz){
-            //pos_log.reserve(step_count);
+            pos_log.resize(block_size);
             id=id_;
             mass=mass_;
             pos.x=x;
@@ -33,7 +35,8 @@ class body{
             vel.z=vz;
             grav_result.x,grav_result.y,grav_result.z=0;
             bodies_felt=0;
-            pos_log.push_back(pos);
+            pos_log[0]=pos;
+            cout<<"Body "<<id<<" Intialised\n";
         }
 
 
@@ -59,14 +62,24 @@ class body{
             vel=new_vel;
         }
 
-        void pos_update(double& dt){
+        void pos_update(double& dt,int& step){
             pos=(new_vel*dt)+pos;
-            pos_log.push_back(pos);
+            pos_log[step]=(pos);
         }
 
 };
 
-
+void chunk_dump(body obj,int block_size){
+    char file_name[6];
+    sprintf(file_name,"%d",obj.id);
+    string str(file_name);
+    str.append(".txt");
+    ofstream log_file(str,ofstream::out | ofstream::app);
+    for (int i=0;i<block_size;i++){
+        log_file<<fixed<<obj.pos_log[i].x<<","<<fixed<<obj.pos_log[i].y<<","<<fixed<<obj.pos_log[i].z<<endl;
+    }
+    log_file.close();
+};
 
 int main(){
     //vector3D pos(14,19,-22);
@@ -77,42 +90,60 @@ int main(){
 
 
     //double timespace=3.154e7;
-    double timespace=250000;
-    double stepsize=10;
-    step_count = timespace/stepsize;
+    double timespace=864000;
+    double stepsize=1;
+    int step_count = timespace/stepsize;
 
-    body earth(1,5.972e24,0,0,0,0,0,0);
-    body moon(2,7.348e22,3.84e8,0,0,0,1082.0,0);
-    body sat(3,1000,3.0e8,0,0,0,800,0);
+    block_size=8640;
+    int num_blocks=timespace/block_size;
+
+    body earth(01,5.972e24,0,0,0,0,0,0);
+    body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
+    body sat(03,1000,3.0e8,0,0,0,800,0);
         
     body system[3]={earth,moon,sat};
 
     
 
     int sums_done=0;
-    
-
-    auto start = high_resolution_clock::now();
-    for (double step = 0; step < (step_count); step++){
-        for (body obj:system){
-            obj.grav_result.zero();
-            for (body other_body:system){
-                obj.sum_grav(other_body);
+    //intial block
+    for (int step = 0; step < (block_size); step++){
+            for (body obj:system){
+                obj.grav_result.zero();
+                for (body other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
             }
-            system[obj.id-1]=obj;   
+            for (body obj:system){
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
         }
-        for (body obj:system){
-            obj.vel_update(stepsize);
-            obj.pos_update(stepsize);
-            system[obj.id-1]=obj;
+    
+    
+    for (int block = 1; block<num_blocks;block++){
+        thread file_writer(chunk_dump,system[2],block_size);
+        
+        for (int step = 0; step < (block_size); step++){
+            for (body obj:system){
+                obj.grav_result.zero();
+                for (body other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
+            }
+            for (body obj:system){
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
         }
-
-
-        //cout<<system[2].vel.mag()<<endl;
-        //cout<<(system[2].pos-system[0].pos).mag()<<endl;
-
+        file_writer.join();
     }
-
+    thread file_writer(chunk_dump,system[2],block_size);
+    file_writer.join();
 
 
 
@@ -121,13 +152,14 @@ int main(){
     vector3D egrav=earth.grav_accel(sat)+earth.grav_accel(moon);
     vector3D mgrav=moon.grav_accel(sat)+moon.grav_accel(earth);
     */
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
+    
 
     cout<<"Final Position: ";
     system[2].pos.print();
     cout <<"Steps: "<<(timespace/stepsize)<<endl;
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
-    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
+    /*auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;*/
     return 0;
 }
