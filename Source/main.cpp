@@ -69,6 +69,15 @@ class body{
 
 };
 
+void file_wipe(body obj){
+    char file_name[6];
+    sprintf(file_name,"%d",obj.id);
+    string str(file_name);
+    str.append(".txt");
+    ofstream log_file(str,ofstream::out | ofstream::trunc);
+    log_file.close();
+}
+
 void chunk_dump(body obj,int block_size){
     char file_name[6];
     sprintf(file_name,"%d",obj.id);
@@ -89,17 +98,17 @@ int main(){
     //(pos/4).print();
 
 
-    //double timespace=3.154e7;
-    double timespace=864000;
-    double stepsize=1;
+    double timespace=1.21e6;
+    //double timespace=864000;
+    double stepsize=5;
     int step_count = timespace/stepsize;
 
-    block_size=8640;
-    int num_blocks=timespace/block_size;
+    block_size=2000;
+    int num_blocks=step_count/block_size;
 
     body earth(01,5.972e24,0,0,0,0,0,0);
     body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
-    body sat(03,1000,3.0e8,0,0,0,800,0);
+    body sat(03,1000,6671e3,0,0,0,10849,0);
         
     body system[3]={earth,moon,sat};
 
@@ -107,6 +116,10 @@ int main(){
 
     int sums_done=0;
     //intial block
+    auto total_start= high_resolution_clock::now();
+    file_wipe(system[0]);
+    file_wipe(system[1]);
+    file_wipe(system[2]);
     for (int step = 0; step < (block_size); step++){
             for (body obj:system){
                 obj.grav_result.zero();
@@ -121,10 +134,13 @@ int main(){
                 system[obj.id-1]=obj;
             }
         }
-    
+    cout<<"Intial Block done";
     
     for (int block = 1; block<num_blocks;block++){
-        thread file_writer(chunk_dump,system[2],block_size);
+        auto start = high_resolution_clock::now();
+        thread earth_writer(chunk_dump,system[0],block_size);
+        thread moon_writer(chunk_dump,system[1],block_size);
+        thread sat_writer(chunk_dump,system[2],block_size);
         
         for (int step = 0; step < (block_size); step++){
             for (body obj:system){
@@ -135,15 +151,26 @@ int main(){
                 system[obj.id-1]=obj;   
             }
             for (body obj:system){
+                
                 obj.vel_update(stepsize);
                 obj.pos_update(stepsize,step);
                 system[obj.id-1]=obj;
             }
         }
-        file_writer.join();
+        earth_writer.join();
+        moon_writer.join();
+        sat_writer.join();
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
+
     }
-    thread file_writer(chunk_dump,system[2],block_size);
-    file_writer.join();
+    thread earth_writer(chunk_dump,system[0],block_size);
+    thread moon_writer(chunk_dump,system[1],block_size);
+    thread sat_writer(chunk_dump,system[2],block_size);
+    earth_writer.join();
+    moon_writer.join();
+    sat_writer.join();
 
 
 
@@ -154,12 +181,12 @@ int main(){
     */
     
 
-    cout<<"Final Position: ";
+    cout<<"\n"<<"Final Position: ";
     system[2].pos.print();
     cout <<"Steps: "<<(timespace/stepsize)<<endl;
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
-    /*auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;*/
+    auto total_stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(total_stop - total_start);
+    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
     return 0;
 }
