@@ -36,7 +36,6 @@ class body{
             grav_result.x,grav_result.y,grav_result.z=0;
             bodies_felt=0;
             pos_log[0]=pos;
-            cout<<"Body "<<id<<" Intialised\n";
         }
 
 
@@ -78,7 +77,7 @@ void file_wipe(body obj){
     log_file.close();
 }
 
-void chunk_dump(body obj,int block_size){
+void chunk_dump(body &obj,int block_size){
     char file_name[6];
     sprintf(file_name,"%d",obj.id);
     string str(file_name);
@@ -91,19 +90,11 @@ void chunk_dump(body obj,int block_size){
 };
 
 int main(){
-    //vector3D pos(14,19,-22);
-    //vector3D pos2(12,-9,2);
-
-    //(pos+pos2).print();
-    //(pos/4).print();
-
-
-    double timespace=1.21e6;
-    //double timespace=864000;
-    double stepsize=5;
+    double timespace=2.419e6;
+    double stepsize=1;
     int step_count = timespace/stepsize;
 
-    block_size=2000;
+    block_size=2000 ;
     int num_blocks=step_count/block_size;
 
     body earth(01,5.972e24,0,0,0,0,0,0);
@@ -121,14 +112,14 @@ int main(){
     file_wipe(system[1]);
     file_wipe(system[2]);
     for (int step = 0; step < (block_size); step++){
-            for (body obj:system){
+            for (body &obj:system){
                 obj.grav_result.zero();
-                for (body other_body:system){
+                for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
                 system[obj.id-1]=obj;   
             }
-            for (body obj:system){
+            for (body &obj:system){
                 obj.vel_update(stepsize);
                 obj.pos_update(stepsize,step);
                 system[obj.id-1]=obj;
@@ -143,14 +134,14 @@ int main(){
         thread sat_writer(chunk_dump,system[2],block_size);
         
         for (int step = 0; step < (block_size); step++){
-            for (body obj:system){
+            for (body &obj:system){
                 obj.grav_result.zero();
-                for (body other_body:system){
+                for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
                 system[obj.id-1]=obj;   
             }
-            for (body obj:system){
+            for (body &obj:system){
                 
                 obj.vel_update(stepsize);
                 obj.pos_update(stepsize,step);
