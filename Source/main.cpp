@@ -4,7 +4,11 @@
 #include <vector>
 #include "../Headers/vector3D.h"
 #include <fstream>
+#include <string>
 #include <thread>
+#include <sstream> 
+
+
 using namespace std;
 using namespace std::chrono;
 
@@ -77,26 +81,43 @@ void file_wipe(body obj){
     log_file.close();
 }
 
-void chunk_dump(body &obj,int block_size){
+string file_string(int id){
     char file_name[6];
-    sprintf(file_name,"%d",obj.id);
+    sprintf(file_name,"%d",id);
     string str(file_name);
     str.append(".txt");
-    ofstream log_file(str,ofstream::out | ofstream::app);
+    return str;
+};
+
+void chunk_dump(body &obj,int block_size){
+    /*char file_name[6];
+    sprintf(file_name,"%d",obj.id);
+    string str(file_name);
+    str.append(".txt");*/
+    string str=file_string(obj.id);
+    ofstream log_file(str, ofstream::out | ofstream::app);
     for (int i=0;i<block_size;i++){
         log_file<<fixed<<obj.pos_log[i].x<<","<<fixed<<obj.pos_log[i].y<<","<<fixed<<obj.pos_log[i].z<<endl;
     }
     log_file.close();
 };
 
+vector3D rot_frame(vector3D& rotator_pos, vector3D& obj_pos){
+    vector3D translated_pos;
+    double theta = atan2(rotator_pos.y,rotator_pos.x);
+    translated_pos.z=obj_pos.z;
+    translated_pos.x=(obj_pos.x*cos(-1*theta))-(obj_pos.y*sin(-1*theta));
+    translated_pos.y=(obj_pos.x*sin(-1*theta))+(obj_pos.y*cos(-1*theta));
+    return translated_pos;
+};
+
 void run_sim(double timespace, double stepsize, int block_size, body sat, bool log){
     int step_count = timespace/stepsize;
 
-    block_size=2000 ;
     int num_blocks=step_count/block_size;
 
     body earth(01,5.972e24,0,0,0,0,0,0);
-    body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
+    body moon(02,7.348e22,3.84e8,0,0,0,1018.0,0);
     body system[3]={earth,moon,sat};
     int sums_done=0;
     //intial block
@@ -163,12 +184,10 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 
 void run_sim(double timespace, double stepsize, int block_size, body sat){
     int step_count = timespace/stepsize;
-
-    block_size=2000 ;
     int num_blocks=step_count/block_size;
 
     body earth(01,5.972e24,0,0,0,0,0,0);
-    body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
+    body moon(02,7.348e22,3.84e8,0,0,0,1018.0,0);
     body system[3]={earth,moon,sat};
     int sums_done=0;
     //intial block
@@ -216,15 +235,107 @@ void run_sim(double timespace, double stepsize, int block_size, body sat){
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
 };
 
+void frame_center(int reference_id, int target_id, int out_id){
+    string ref_str=file_string(reference_id);
+    string tgt_str=file_string(target_id);
+    string out_str=file_string(out_id);
+    ifstream ref_file;
+    ifstream tgt_file;
+    ofstream out_file;
+
+    ref_file.open(ref_str);
+    tgt_file.open(tgt_str);
+    out_file.open(out_str);
+    if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
+        cerr <<"An object file failed to open"<<endl;
+        ref_file.close();
+        tgt_file.close();
+        out_file.close();
+        exit(1);
+    }
+
+    string ref_line,tgt_line;
+    while (getline(tgt_file,tgt_line)&&getline(ref_file,ref_line)){
+        stringstream tgt_stream(tgt_line),ref_stream(ref_line);
+        string token;
+        double tgt[3],ref[3];
+        int i=0;
+
+        while (getline(tgt_stream, token, ',') && i < 3) 
+            tgt[i++] = std::stod(token);
+
+        i=0; 
+
+        while (getline(ref_stream, token, ',') && i < 3) 
+            ref[i++] = std::stod(token);
+
+        vector3D ref_pos(ref[0],ref[1],ref[2]);
+        vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
+        vector3D new_pos=tgt_pos-ref_pos;
+
+        out_file <<new_pos.x<<","<<new_pos.y<<","<<new_pos.z<<"\n";
+
+    }
+    ref_file.close();
+    tgt_file.close();
+    out_file.close();
+};
+
+void frame_swap(int reference_id, int target_id, int out_id){
+    string ref_str=file_string(reference_id);
+    string tgt_str=file_string(target_id);
+    string out_str=file_string(out_id);
+    ifstream ref_file;
+    ifstream tgt_file;
+    ofstream out_file;
+
+    ref_file.open(ref_str);
+    tgt_file.open(tgt_str);
+    out_file.open(out_str);
+    if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
+        cerr <<"An object file failed to open"<<endl;
+        ref_file.close();
+        tgt_file.close();
+        out_file.close();
+        exit(1);
+    }
+
+    string ref_line,tgt_line;
+    while (getline(tgt_file,tgt_line)&&getline(ref_file,ref_line)){
+        stringstream tgt_stream(tgt_line),ref_stream(ref_line);
+        string token;
+        double tgt[3],ref[3];
+        int i=0;
+
+        while (getline(tgt_stream, token, ',') && i < 3) 
+            tgt[i++] = std::stod(token);
+
+        i=0; 
+
+        while (getline(ref_stream, token, ',') && i < 3) 
+            ref[i++] = std::stod(token);
+
+        vector3D ref_pos(ref[0],ref[1],ref[2]);
+        vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
+        vector3D new_pos=rot_frame(ref_pos,tgt_pos);
+
+        out_file <<new_pos.x<<","<<new_pos.y<<","<<new_pos.z<<"\n";
+
+    }
+    ref_file.close();
+    tgt_file.close();
+    out_file.close();
+};
+
 int main(){
-    double timespace=6.419e6;
-    double stepsize=5;
+    double timespace=1.419e6;
+    double stepsize=10;
     int step_count = timespace/stepsize;
 
     block_size=2000 ;
 
    
-    body sat(03,1000,6671e3,0,0,0,10849,0);
+    body sat(03,1000,3.195e8,0,10e6,0,1027.5,0);
     auto total_start= high_resolution_clock::now();
 
     //Top is no logging, bottom is with logging
@@ -234,5 +345,22 @@ int main(){
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
     cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
+    cout << "Frame translation in progress..." <<endl;
+
+
+    thread a(frame_center,1,1,4);
+    thread b(frame_center,1,2,5);
+    thread c(frame_center,1,3,6);
+
+    a.join();
+    b.join();
+    c.join();
+    
+    cout<< "Frame rotation..."<<endl;
+    thread d(frame_swap,5,5,7);
+    thread e(frame_swap,5,6,8);
+    d.join();
+    e.join();
+
     return 0;
 }
