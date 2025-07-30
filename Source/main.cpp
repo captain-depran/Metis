@@ -89,9 +89,7 @@ void chunk_dump(body &obj,int block_size){
     log_file.close();
 };
 
-int main(){
-    double timespace=2.419e6;
-    double stepsize=1;
+void run_sim(double timespace, double stepsize, int block_size, body sat, bool log){
     int step_count = timespace/stepsize;
 
     block_size=2000 ;
@@ -99,15 +97,9 @@ int main(){
 
     body earth(01,5.972e24,0,0,0,0,0,0);
     body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
-    body sat(03,1000,6671e3,0,0,0,10849,0);
-        
     body system[3]={earth,moon,sat};
-
-    
-
     int sums_done=0;
     //intial block
-    auto total_start= high_resolution_clock::now();
     file_wipe(system[0]);
     file_wipe(system[1]);
     file_wipe(system[2]);
@@ -126,7 +118,7 @@ int main(){
             }
         }
     cout<<"Intial Block done";
-    
+
     for (int block = 1; block<num_blocks;block++){
         auto start = high_resolution_clock::now();
         thread earth_writer(chunk_dump,system[0],block_size);
@@ -163,19 +155,82 @@ int main(){
     moon_writer.join();
     sat_writer.join();
 
+    cout<<"\n"<<"Final Position: ";
+    system[2].pos.print();
+    cout <<"Steps: "<<(timespace/stepsize)<<endl;
+    cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
+};
 
+void run_sim(double timespace, double stepsize, int block_size, body sat){
+    int step_count = timespace/stepsize;
 
-    /*
-    vector3D total_grav=sat.grav_accel(earth)+sat.grav_accel(moon);
-    vector3D egrav=earth.grav_accel(sat)+earth.grav_accel(moon);
-    vector3D mgrav=moon.grav_accel(sat)+moon.grav_accel(earth);
-    */
-    
+    block_size=2000 ;
+    int num_blocks=step_count/block_size;
+
+    body earth(01,5.972e24,0,0,0,0,0,0);
+    body moon(02,7.348e22,3.84e8,0,0,0,1082.0,0);
+    body system[3]={earth,moon,sat};
+    int sums_done=0;
+    //intial block
+    for (int step = 0; step < (block_size); step++){
+            for (body &obj:system){
+                obj.grav_result.zero();
+                for (const body &other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
+            }
+            for (body &obj:system){
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
+        }
+    cout<<"Intial Block done";
+
+    for (int block = 1; block<num_blocks;block++){
+        auto start = high_resolution_clock::now();
+        for (int step = 0; step < (block_size); step++){
+            for (body &obj:system){
+                obj.grav_result.zero();
+                for (const body &other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
+            }
+            for (body &obj:system){
+                
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
+        }
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
+    }
 
     cout<<"\n"<<"Final Position: ";
     system[2].pos.print();
     cout <<"Steps: "<<(timespace/stepsize)<<endl;
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
+};
+
+int main(){
+    double timespace=6.419e6;
+    double stepsize=5;
+    int step_count = timespace/stepsize;
+
+    block_size=2000 ;
+
+   
+    body sat(03,1000,6671e3,0,0,0,10849,0);
+    auto total_start= high_resolution_clock::now();
+
+    //Top is no logging, bottom is with logging
+    //run_sim(timespace,stepsize,block_size,sat);
+    run_sim(timespace,stepsize,block_size,sat,true);
+
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
     cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
