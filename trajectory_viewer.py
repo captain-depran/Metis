@@ -8,8 +8,8 @@ import plotly.io as pio
 pio.renderers.default='browser'
 
 earth_data=np.fromfile("Source/4.bin",dtype=np.float64)
-moon_data=np.fromfile("Source/7.bin",dtype=np.float64)
-sat_data=np.fromfile("Source/8.bin",dtype=np.float64)
+moon_data=np.fromfile("Source/5.bin",dtype=np.float64)
+sat_data=np.fromfile("Source/6.bin",dtype=np.float64)
 
 earth_pos = earth_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)
@@ -27,19 +27,19 @@ sat_pos = pd.DataFrame(sat_pos, columns=['x', 'y', 'z'])
 
 fig = go.Figure()   
 fig.add_trace(go.Scatter3d(x=[0], y=[0],z=[0]))
-fig.add_trace(go.Scatter3d(x=moon_pos["x"], y=moon_pos["y"],z=moon_pos["z"], mode='lines'))
-fig.add_trace(go.Scatter3d(x=sat_pos["x"], y=sat_pos["y"],z=sat_pos["z"], mode='lines'))
+fig.add_trace(go.Scatter3d(x=moon_pos["x"][::5], y=moon_pos["y"][::5],z=moon_pos["z"][::5], mode='lines'))
+fig.add_trace(go.Scatter3d(x=sat_pos["x"][::5], y=sat_pos["y"][::5],z=sat_pos["z"][::5], mode='lines'))
 
 fig.update_layout(scene_aspectmode='data')
 fig.show()
 
-
-#MATPLOTLIB VERSION
+print(np.min(np.sqrt(((moon_pos["x"]-sat_pos["x"])**2)+((moon_pos["y"]-sat_pos["y"])**2)+((moon_pos["z"]-sat_pos["z"])**2))))
 """
-print(moon_pos["y"])
+#MATPLOTLIB VERSION
+
 plt.scatter(0,0)
-plt.plot(moon_pos["y"],moon_pos["z"])
-plt.plot(sat_pos["y"],sat_pos["z"],color="r")
+plt.plot(moon_pos["x"],moon_pos["y"])
+plt.plot(sat_pos["x"],sat_pos["y"],color="r")
 plt.axis("equal")
 plt.show()
 """

@@ -3,6 +3,8 @@
 #include <chrono>
 #include <vector>
 #include "../Headers/vector3D.h"
+#include "../Headers/file_tools.h"
+#include "../Headers/frame_tools.h"
 #include <fstream>
 #include <string>
 #include <thread>
@@ -37,7 +39,7 @@ class body{
             vel.x=vx;
             vel.y=vy;
             vel.z=vz;
-            grav_result.x,grav_result.y,grav_result.z=0;
+            grav_result.x=grav_result.y=grav_result.z=0;
             bodies_felt=0;
             pos_log[0]=pos;
         }
@@ -70,42 +72,30 @@ class body{
             pos_log[step]=(pos);
         }
 
+        void init_vel(double& dt){
+            vel=vel+(grav_result*0.5*dt);
+        }
+        void final_vel(double& dt){
+            vel=vel-(grav_result*0.5*dt);
+        }
+
 };
 
+
+
+
 void file_wipe(body obj){
-    char file_name[6];
-    sprintf(file_name,"%d",obj.id);
-    string str(file_name);
-    str.append(".bin");
+    string str=file_string(obj.id);
     ofstream log_file(str,ofstream::out | ofstream::trunc);
     log_file.close();
 }
 
-string file_string(int id){
-    char file_name[6];
-    sprintf(file_name,"%d",id);
-    string str(file_name);
-    str.append(".bin");
-    return str;
-};
 
 void chunk_dump(body &obj,int dump_size){
     string str=file_string(obj.id);
     ofstream log_file(str, ios::out | ios::binary |ios::app);
     log_file.write(reinterpret_cast<const char*>(obj.pos_log.data()), dump_size * sizeof(vector3D));
-    /*for (int i=0;i<block_size;i++){
-        log_file<<fixed<<obj.pos_log[i].x<<","<<fixed<<obj.pos_log[i].y<<","<<fixed<<obj.pos_log[i].z<<endl;
-    }*/
     log_file.close();
-};
-
-vector3D rot_frame(vector3D& rotator_pos, vector3D& obj_pos){
-    vector3D translated_pos;
-    double theta = atan2(rotator_pos.y,rotator_pos.x);
-    translated_pos.z=obj_pos.z;
-    translated_pos.x=(obj_pos.x*cos(-1*theta))-(obj_pos.y*sin(-1*theta));
-    translated_pos.y=(obj_pos.x*sin(-1*theta))+(obj_pos.y*cos(-1*theta));
-    return translated_pos;
 };
 
 void run_sim(double timespace, double stepsize, int block_size, body sat, bool log){
@@ -122,9 +112,22 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     file_wipe(system[0]);
     file_wipe(system[1]);
     file_wipe(system[2]);
+
+    // Leapfrog velocity offset init
+
+    for (body &obj:system){
+        obj.grav_result.zero();
+        for (const body &other_body:system){
+                obj.sum_grav(other_body);
+        }
+        obj.init_vel(stepsize);
+        system[obj.id-1]=obj;   
+    }
+
     for (int step = 0; step < (block_size); step++){
             for (body &obj:system){
                 obj.grav_result.zero();
+                obj.pos_update(stepsize,step);
                 for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
@@ -132,7 +135,6 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
             }
             for (body &obj:system){
                 obj.vel_update(stepsize);
-                obj.pos_update(stepsize,step);
                 system[obj.id-1]=obj;
             }
         }
@@ -147,15 +149,14 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
         for (int step = 0; step < (block_size); step++){
             for (body &obj:system){
                 obj.grav_result.zero();
+                obj.pos_update(stepsize,step);
                 for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
                 system[obj.id-1]=obj;   
             }
             for (body &obj:system){
-                
                 obj.vel_update(stepsize);
-                obj.pos_update(stepsize,step);
                 system[obj.id-1]=obj;
             }
         }
@@ -181,15 +182,15 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
         for (int step = 0; step < (remainder); step++){
             for (body &obj:system){
                 obj.grav_result.zero();
+                obj.pos_update(stepsize,step);
                 for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
                 system[obj.id-1]=obj;   
             }
             for (body &obj:system){
-                
                 obj.vel_update(stepsize);
-                obj.pos_update(stepsize,step);
+
                 system[obj.id-1]=obj;
             }
         }
@@ -203,6 +204,12 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
         auto duration = duration_cast<milliseconds>(stop - start);
         cout <<"\r"<< "Progress: FINISHING STRAGGLERS | Block Time: "<< duration.count() << " milliseconds        ";
     }
+
+    for (body &obj:system){
+        obj.final_vel(stepsize);
+        system[obj.id-1]=obj;   
+    }
+
     cout<<"\n"<<"Final Position: ";
     system[2].pos.print();
     cout <<"Steps: "<<(timespace/stepsize)<<endl;
@@ -284,78 +291,15 @@ void run_sim(double timespace, double stepsize, int block_size, body sat){
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
 };
 
-void frame_center(int reference_id, int target_id, int out_id,int entries){
-    string ref_str=file_string(reference_id);
-    string tgt_str=file_string(target_id);
-    string out_str=file_string(out_id);
-    ifstream ref_file(ref_str, ios::binary);
-    ifstream tgt_file(tgt_str, ios::binary);
-    ofstream out_file(out_str,ios::binary);
-
-    if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
-        cerr <<"An object file failed to open"<<endl;
-        ref_file.close();
-        tgt_file.close();
-        out_file.close();
-        exit(1);
-    }
-
-    vector3D ref_pos, tgt_pos, new_pos;
-    for (int i=0; i<entries; i++) {
-        ref_file.read(reinterpret_cast<char*>(&ref_pos), sizeof(vector3D));
-        tgt_file.read(reinterpret_cast<char*>(&tgt_pos), sizeof(vector3D));
-
-        new_pos = tgt_pos - ref_pos;
-
-        out_file.write(reinterpret_cast<const char*>(&new_pos), sizeof(vector3D));
-    }
-
-    ref_file.close();
-    tgt_file.close();
-    out_file.close();
-};
-
-void frame_swap(int reference_id, int target_id, int out_id,int entries){
-    string ref_str=file_string(reference_id);
-    string tgt_str=file_string(target_id);
-    string out_str=file_string(out_id);
-    ifstream ref_file(ref_str, ios::binary);
-    ifstream tgt_file(tgt_str, ios::binary);
-    ofstream out_file(out_str,ios::binary);
-
-    if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
-        cerr <<"An object file failed to open"<<endl;
-        ref_file.close();
-        tgt_file.close();
-        out_file.close();
-        exit(1);
-    }
-
-    vector3D ref_pos, tgt_pos, new_pos;
-    for (int i=0; i<entries; i++) {
-        ref_file.read(reinterpret_cast<char*>(&ref_pos), sizeof(vector3D));
-        tgt_file.read(reinterpret_cast<char*>(&tgt_pos), sizeof(vector3D));
-
-        new_pos = rot_frame(ref_pos,tgt_pos);
-
-        out_file.write(reinterpret_cast<const char*>(&new_pos), sizeof(vector3D));
-    }
-
-    
-    ref_file.close();
-    tgt_file.close();
-    out_file.close();
-};
-
 int main(){
-    double timespace=3.419e6;
+    double timespace=5.419e6;
     double stepsize=10;
     int step_count = timespace/stepsize;
 
     block_size=50000;
 
    
-    body sat(03,1000,3.195e8,0,10e6,0,1027.5,0);
+    body sat(03,1000,3.195e8,0,10e6,0,1027.34,0);
     auto total_start= high_resolution_clock::now();
 
     //Top is no logging, bottom is with logging
