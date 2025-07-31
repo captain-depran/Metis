@@ -7,9 +7,21 @@ import plotly.io as pio
 
 pio.renderers.default='browser'
 
-earth_pos=pd.read_csv("Source/4.txt",names=["x","y","z"])
-moon_pos=pd.read_csv("Source/7.txt",names=["x","y","z"])
-sat_pos=pd.read_csv("Source/8.txt",names=["x","y","z"])
+earth_data=np.fromfile("Source/1.bin",dtype=np.float64)
+moon_data=np.fromfile("Source/2.bin",dtype=np.float64)
+sat_data=np.fromfile("Source/3.bin",dtype=np.float64)
+
+earth_pos = earth_data.reshape(-1, 3)
+moon_pos = moon_data.reshape(-1, 3)
+sat_pos = sat_data.reshape(-1, 3)
+
+earth_pos = pd.DataFrame(earth_pos, columns=['x', 'y', 'z'])
+moon_pos = pd.DataFrame(moon_pos, columns=['x', 'y', 'z'])
+sat_pos = pd.DataFrame(sat_pos, columns=['x', 'y', 'z'])
+
+#earth_pos=pd.read_csv("Source/4.txt",names=["x","y","z"])
+#moon_pos=pd.read_csv("Source/7.txt",names=["x","y","z"])
+#sat_pos=pd.read_csv("Source/8.txt",names=["x","y","z"])
 
 #PLOTLY VERSION
 

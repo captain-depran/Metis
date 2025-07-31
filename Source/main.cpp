@@ -76,7 +76,7 @@ void file_wipe(body obj){
     char file_name[6];
     sprintf(file_name,"%d",obj.id);
     string str(file_name);
-    str.append(".txt");
+    str.append(".bin");
     ofstream log_file(str,ofstream::out | ofstream::trunc);
     log_file.close();
 }
@@ -85,20 +85,17 @@ string file_string(int id){
     char file_name[6];
     sprintf(file_name,"%d",id);
     string str(file_name);
-    str.append(".txt");
+    str.append(".bin");
     return str;
 };
 
 void chunk_dump(body &obj,int block_size){
-    /*char file_name[6];
-    sprintf(file_name,"%d",obj.id);
-    string str(file_name);
-    str.append(".txt");*/
     string str=file_string(obj.id);
-    ofstream log_file(str, ofstream::out | ofstream::app);
-    for (int i=0;i<block_size;i++){
+    ofstream log_file(str, ios::out | ios::binary |ios::app);
+    log_file.write(reinterpret_cast<const char*>(obj.pos_log.data()), block_size * sizeof(vector3D));
+    /*for (int i=0;i<block_size;i++){
         log_file<<fixed<<obj.pos_log[i].x<<","<<fixed<<obj.pos_log[i].y<<","<<fixed<<obj.pos_log[i].z<<endl;
-    }
+    }*/
     log_file.close();
 };
 
@@ -115,6 +112,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     int step_count = timespace/stepsize;
 
     int num_blocks=step_count/block_size;
+    int remainder = step_count%block_size;
 
     body earth(01,5.972e24,0,0,0,0,0,0);
     body moon(02,7.348e22,3.84e8,0,0,0,1018.0,0);
@@ -169,6 +167,8 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
         cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
 
     }
+
+
     thread earth_writer(chunk_dump,system[0],block_size);
     thread moon_writer(chunk_dump,system[1],block_size);
     thread sat_writer(chunk_dump,system[2],block_size);
@@ -176,6 +176,33 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     moon_writer.join();
     sat_writer.join();
 
+    if (remainder > 0){
+        auto start = high_resolution_clock::now();
+        for (int step = 0; step < (remainder); step++){
+            for (body &obj:system){
+                obj.grav_result.zero();
+                for (const body &other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
+            }
+            for (body &obj:system){
+                
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
+        }
+        thread earth_writer(chunk_dump,system[0],remainder);
+        thread moon_writer(chunk_dump,system[1],remainder);
+        thread sat_writer(chunk_dump,system[2],remainder);
+        earth_writer.join();
+        moon_writer.join();
+        sat_writer.join();
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        cout <<"\r"<< "Progress: FINISHING STRAGGLERS | Block Time: "<< duration.count() << " milliseconds        ";
+    }
     cout<<"\n"<<"Final Position: ";
     system[2].pos.print();
     cout <<"Steps: "<<(timespace/stepsize)<<endl;
@@ -185,7 +212,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 void run_sim(double timespace, double stepsize, int block_size, body sat){
     int step_count = timespace/stepsize;
     int num_blocks=step_count/block_size;
-
+    int remainder = step_count%block_size;
     body earth(01,5.972e24,0,0,0,0,0,0);
     body moon(02,7.348e22,3.84e8,0,0,0,1018.0,0);
     body system[3]={earth,moon,sat};
@@ -227,6 +254,28 @@ void run_sim(double timespace, double stepsize, int block_size, body sat){
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(stop - start);
         cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
+    }
+
+    if (remainder > 0){
+        auto start = high_resolution_clock::now();
+        for (int step = 0; step < (remainder); step++){
+            for (body &obj:system){
+                obj.grav_result.zero();
+                for (const body &other_body:system){
+                    obj.sum_grav(other_body);
+                }
+                system[obj.id-1]=obj;   
+            }
+            for (body &obj:system){
+                
+                obj.vel_update(stepsize);
+                obj.pos_update(stepsize,step);
+                system[obj.id-1]=obj;
+            }
+        }
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        cout <<"\r"<< "Progress: FINISHING STRAGGLERS  | Block Time: "<< duration.count() << " milliseconds        ";
     }
 
     cout<<"\n"<<"Final Position: ";
@@ -273,7 +322,7 @@ void frame_center(int reference_id, int target_id, int out_id){
         vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
         vector3D new_pos=tgt_pos-ref_pos;
 
-        out_file <<new_pos.x<<","<<new_pos.y<<","<<new_pos.z<<"\n";
+        out_file <<fixed<<new_pos.x<<","<<fixed<<new_pos.y<<","<<fixed<<new_pos.z<<"\n";
 
     }
     ref_file.close();
@@ -319,7 +368,7 @@ void frame_swap(int reference_id, int target_id, int out_id){
         vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
         vector3D new_pos=rot_frame(ref_pos,tgt_pos);
 
-        out_file <<new_pos.x<<","<<new_pos.y<<","<<new_pos.z<<"\n";
+        out_file <<fixed<<new_pos.x<<","<<fixed<<new_pos.y<<","<<fixed<<new_pos.z<<"\n";
 
     }
     ref_file.close();
@@ -332,7 +381,7 @@ int main(){
     double stepsize=10;
     int step_count = timespace/stepsize;
 
-    block_size=2000 ;
+    block_size=50000;
 
    
     body sat(03,1000,3.195e8,0,10e6,0,1027.5,0);
@@ -345,22 +394,22 @@ int main(){
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
     cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
-    cout << "Frame translation in progress..." <<endl;
+    //cout << "Frame translation in progress..." <<endl;
 
 
-    thread a(frame_center,1,1,4);
-    thread b(frame_center,1,2,5);
-    thread c(frame_center,1,3,6);
+    //thread a(frame_center,1,1,4);
+    //thread b(frame_center,1,2,5);
+    //thread c(frame_center,1,3,6);
 
-    a.join();
-    b.join();
-    c.join();
+    //.join();
+    //b.join();
+    //c.join();
     
-    cout<< "Frame rotation..."<<endl;
-    thread d(frame_swap,5,5,7);
-    thread e(frame_swap,5,6,8);
-    d.join();
-    e.join();
+    //cout<< "Frame rotation..."<<endl;
+    //thread d(frame_swap,5,5,7);
+    //thread e(frame_swap,5,6,8);
+    //d.join();
+    //e.join();
 
     return 0;
 }
