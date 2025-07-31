@@ -7,9 +7,9 @@ import plotly.io as pio
 
 pio.renderers.default='browser'
 
-earth_data=np.fromfile("Source/1.bin",dtype=np.float64)
-moon_data=np.fromfile("Source/2.bin",dtype=np.float64)
-sat_data=np.fromfile("Source/3.bin",dtype=np.float64)
+earth_data=np.fromfile("Source/4.bin",dtype=np.float64)
+moon_data=np.fromfile("Source/7.bin",dtype=np.float64)
+sat_data=np.fromfile("Source/8.bin",dtype=np.float64)
 
 earth_pos = earth_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)
@@ -33,9 +33,10 @@ fig.add_trace(go.Scatter3d(x=sat_pos["x"], y=sat_pos["y"],z=sat_pos["z"], mode='
 fig.update_layout(scene_aspectmode='data')
 fig.show()
 
+
 #MATPLOTLIB VERSION
 """
-
+print(moon_pos["y"])
 plt.scatter(0,0)
 plt.plot(moon_pos["y"],moon_pos["z"])
 plt.plot(sat_pos["y"],sat_pos["z"],color="r")

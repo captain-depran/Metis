@@ -89,10 +89,10 @@ string file_string(int id){
     return str;
 };
 
-void chunk_dump(body &obj,int block_size){
+void chunk_dump(body &obj,int dump_size){
     string str=file_string(obj.id);
     ofstream log_file(str, ios::out | ios::binary |ios::app);
-    log_file.write(reinterpret_cast<const char*>(obj.pos_log.data()), block_size * sizeof(vector3D));
+    log_file.write(reinterpret_cast<const char*>(obj.pos_log.data()), dump_size * sizeof(vector3D));
     /*for (int i=0;i<block_size;i++){
         log_file<<fixed<<obj.pos_log[i].x<<","<<fixed<<obj.pos_log[i].y<<","<<fixed<<obj.pos_log[i].z<<endl;
     }*/
@@ -284,17 +284,14 @@ void run_sim(double timespace, double stepsize, int block_size, body sat){
     cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
 };
 
-void frame_center(int reference_id, int target_id, int out_id){
+void frame_center(int reference_id, int target_id, int out_id,int entries){
     string ref_str=file_string(reference_id);
     string tgt_str=file_string(target_id);
     string out_str=file_string(out_id);
-    ifstream ref_file;
-    ifstream tgt_file;
-    ofstream out_file;
+    ifstream ref_file(ref_str, ios::binary);
+    ifstream tgt_file(tgt_str, ios::binary);
+    ofstream out_file(out_str,ios::binary);
 
-    ref_file.open(ref_str);
-    tgt_file.open(tgt_str);
-    out_file.open(out_str);
     if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
         cerr <<"An object file failed to open"<<endl;
         ref_file.close();
@@ -303,44 +300,29 @@ void frame_center(int reference_id, int target_id, int out_id){
         exit(1);
     }
 
-    string ref_line,tgt_line;
-    while (getline(tgt_file,tgt_line)&&getline(ref_file,ref_line)){
-        stringstream tgt_stream(tgt_line),ref_stream(ref_line);
-        string token;
-        double tgt[3],ref[3];
-        int i=0;
+    vector3D ref_pos, tgt_pos, new_pos;
+    for (int i=0; i<entries; i++) {
+        ref_file.read(reinterpret_cast<char*>(&ref_pos), sizeof(vector3D));
+        tgt_file.read(reinterpret_cast<char*>(&tgt_pos), sizeof(vector3D));
 
-        while (getline(tgt_stream, token, ',') && i < 3) 
-            tgt[i++] = std::stod(token);
+        new_pos = tgt_pos - ref_pos;
 
-        i=0; 
-
-        while (getline(ref_stream, token, ',') && i < 3) 
-            ref[i++] = std::stod(token);
-
-        vector3D ref_pos(ref[0],ref[1],ref[2]);
-        vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
-        vector3D new_pos=tgt_pos-ref_pos;
-
-        out_file <<fixed<<new_pos.x<<","<<fixed<<new_pos.y<<","<<fixed<<new_pos.z<<"\n";
-
+        out_file.write(reinterpret_cast<const char*>(&new_pos), sizeof(vector3D));
     }
+
     ref_file.close();
     tgt_file.close();
     out_file.close();
 };
 
-void frame_swap(int reference_id, int target_id, int out_id){
+void frame_swap(int reference_id, int target_id, int out_id,int entries){
     string ref_str=file_string(reference_id);
     string tgt_str=file_string(target_id);
     string out_str=file_string(out_id);
-    ifstream ref_file;
-    ifstream tgt_file;
-    ofstream out_file;
+    ifstream ref_file(ref_str, ios::binary);
+    ifstream tgt_file(tgt_str, ios::binary);
+    ofstream out_file(out_str,ios::binary);
 
-    ref_file.open(ref_str);
-    tgt_file.open(tgt_str);
-    out_file.open(out_str);
     if (ref_file.fail()||tgt_file.fail()||out_file.fail()){
         cerr <<"An object file failed to open"<<endl;
         ref_file.close();
@@ -349,35 +331,24 @@ void frame_swap(int reference_id, int target_id, int out_id){
         exit(1);
     }
 
-    string ref_line,tgt_line;
-    while (getline(tgt_file,tgt_line)&&getline(ref_file,ref_line)){
-        stringstream tgt_stream(tgt_line),ref_stream(ref_line);
-        string token;
-        double tgt[3],ref[3];
-        int i=0;
+    vector3D ref_pos, tgt_pos, new_pos;
+    for (int i=0; i<entries; i++) {
+        ref_file.read(reinterpret_cast<char*>(&ref_pos), sizeof(vector3D));
+        tgt_file.read(reinterpret_cast<char*>(&tgt_pos), sizeof(vector3D));
 
-        while (getline(tgt_stream, token, ',') && i < 3) 
-            tgt[i++] = std::stod(token);
+        new_pos = rot_frame(ref_pos,tgt_pos);
 
-        i=0; 
-
-        while (getline(ref_stream, token, ',') && i < 3) 
-            ref[i++] = std::stod(token);
-
-        vector3D ref_pos(ref[0],ref[1],ref[2]);
-        vector3D tgt_pos(tgt[0],tgt[1],tgt[2]);      
-        vector3D new_pos=rot_frame(ref_pos,tgt_pos);
-
-        out_file <<fixed<<new_pos.x<<","<<fixed<<new_pos.y<<","<<fixed<<new_pos.z<<"\n";
-
+        out_file.write(reinterpret_cast<const char*>(&new_pos), sizeof(vector3D));
     }
+
+    
     ref_file.close();
     tgt_file.close();
     out_file.close();
 };
 
 int main(){
-    double timespace=1.419e6;
+    double timespace=3.419e6;
     double stepsize=10;
     int step_count = timespace/stepsize;
 
@@ -394,22 +365,18 @@ int main(){
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
     cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
-    //cout << "Frame translation in progress..." <<endl;
+    cout << "Frame translation in progress..." <<endl;
 
 
-    //thread a(frame_center,1,1,4);
-    //thread b(frame_center,1,2,5);
-    //thread c(frame_center,1,3,6);
+    frame_center(1,1,4,step_count);
+    frame_center(1,2,5,step_count);
+    frame_center(1,3,6,step_count);
 
-    //.join();
-    //b.join();
-    //c.join();
-    
-    //cout<< "Frame rotation..."<<endl;
-    //thread d(frame_swap,5,5,7);
-    //thread e(frame_swap,5,6,8);
-    //d.join();
-    //e.join();
+
+    cout<< "Frame rotation..."<<endl;
+    frame_swap(5,5,7,step_count);
+    frame_swap(5,6,8,step_count);
+
 
     return 0;
 }
