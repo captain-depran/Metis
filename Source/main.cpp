@@ -5,6 +5,7 @@
 #include "../Headers/vector3D.h"
 #include "../Headers/file_tools.h"
 #include "../Headers/frame_tools.h"
+#include "../Headers/kep_to_cart.h"
 #include <fstream>
 #include <string>
 #include <thread>
@@ -195,14 +196,15 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 
 
 int main(){
-    double timespace=1.419e6;
+    double timespace=3.419e6;
     double stepsize=1;
     int step_count = timespace/stepsize;
 
     int block_size=50000;
 
-   
-    body sat(03,1000,3.195e8,0,10e6,0,1027.34,0);
+    state_vector sat_state = cart_state(5.972e24, 3.195e8, 0, 0.0872665 ,4.71239, 1.5708, 0);
+
+    body sat(03,1000,sat_state.r.x,sat_state.r.y,sat_state.r.z,sat_state.v.x,sat_state.v.y,sat_state.v.z);
     auto total_start= high_resolution_clock::now();
 
     //Last parameter is whether or not to log positions

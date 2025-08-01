@@ -17,3 +17,4 @@ Metis.pdb
 .vscode/settings.json
 .vscode/tasks.json
 Prototyping/main.obj
+Source/main.cpp

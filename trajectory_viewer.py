@@ -8,8 +8,8 @@ import plotly.io as pio
 pio.renderers.default='browser'
 
 earth_data=np.fromfile("Source/4.bin",dtype=np.float64)
-moon_data=np.fromfile("Source/7.bin",dtype=np.float64)
-sat_data=np.fromfile("Source/8.bin",dtype=np.float64)
+moon_data=np.fromfile("Source/5.bin",dtype=np.float64)
+sat_data=np.fromfile("Source/6.bin",dtype=np.float64)
 
 earth_pos = earth_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)
