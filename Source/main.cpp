@@ -29,6 +29,17 @@ class body{
         vector3D vel;
         vector3D new_vel;
 
+        body(int id_,double mass_,vector3D r, vector3D v){
+            pos_log.resize(1);
+            id=id_;
+            mass=mass_;
+            pos=r;
+            vel=v;
+            grav_result.x=grav_result.y=grav_result.z=0;
+            bodies_felt=0;
+            pos_log[0]=pos;
+        }
+
         
         body(int id_,double mass_,double x, double y, double z, double vx, double vy, double vz){
             pos_log.resize(1);
@@ -202,9 +213,9 @@ int main(){
 
     int block_size=50000;
 
-    state_vector sat_state = cart_state(5.972e24, 3.195e8, 0, 0.0872665 ,4.71239, 1.5708, 0);
+    state_vector sat_state = cart_state(5.972e24, 6.795e6, 0, 0.0872665 ,4.71239, 1.5708, 0);
 
-    body sat(03,1000,sat_state.r.x,sat_state.r.y,sat_state.r.z,sat_state.v.x,sat_state.v.y,sat_state.v.z);
+    body sat(03,1000,sat_state.r,sat_state.v);
     auto total_start= high_resolution_clock::now();
 
     //Last parameter is whether or not to log positions
