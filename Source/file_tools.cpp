@@ -9,3 +9,9 @@ std::string file_string(int id){
     str.append(".bin");
     return str;
 };
+
+void file_wipe(int id){
+    std::string str=file_string(id);
+    std::ofstream log_file(str,std::ofstream::out | std::ofstream::trunc);
+    log_file.close();
+}
