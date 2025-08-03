@@ -1,11 +1,13 @@
 #include "../Headers/vector3D.h"
 #include "../Headers/kep_to_cart.h"
+#include "../Headers/constants.h"
 #include <cmath>
 #include <iostream>
 
 state_vector cart_state(double host_mass, double a, double e, double i, double Omega, double omega, double nu){
-    const double Gconst = 6.6743e-11;
+    //const double Gconst = 6.6743e-11;
     double MU = host_mass*Gconst;
+    vector3D v_pqw;
 
     double p = (a * (1-e*e));
     double r_mag = p/(1+e*cos(nu));
@@ -13,7 +15,14 @@ state_vector cart_state(double host_mass, double a, double e, double i, double O
 
     //Perifocal Frame
     vector3D r_pqw(r_mag * cos(nu), r_mag * sin(nu), 0.0);
-    vector3D v_pqw(-(MU/h)*sin(nu), (MU/h)*(e+cos(nu)), 0.0);
+    if(h!=0){
+        v_pqw.x=-(MU/h)*sin(nu);
+        v_pqw.y= (MU/h)*(e+cos(nu));
+        v_pqw.z=0.0;
+        
+    } else{
+        vector3D v_pqw(0,0,0);
+    };
 
     //Rotation Matrix
     double cO = cos(Omega), sO = sin(Omega);

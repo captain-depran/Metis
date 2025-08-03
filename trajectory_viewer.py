@@ -34,7 +34,7 @@ fig.update_layout(scene_aspectmode='data')
 fig.show()
 
 #print(np.min(np.sqrt(((moon_pos["x"]-sat_pos["x"])**2)+((moon_pos["y"]-sat_pos["y"])**2)+((moon_pos["z"]-sat_pos["z"])**2))))
-print(sat_pos.shape)
+
 """
 #MATPLOTLIB VERSION
 
