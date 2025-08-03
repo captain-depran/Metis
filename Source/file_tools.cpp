@@ -27,7 +27,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
     body_import current;
     std::ifstream body_file(file_name);
     std::string line;
-    double host_mass = 5.972e24;
+    double host_mass = 1.989e30;
     bool in_body_block=false;
 
     enum key_type {PARENT, MASS, RADIUS, SEMI_MAJ, ECC, INC, LONG_ASC_NODE, ARG_PERI, TRUE_ANOM, UNKNOWN};
@@ -56,7 +56,8 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
             std::stringstream ss(line);
             std::string temp;
             ss >> temp >> current.id >> current.name;
-            in_body_block=true;            
+            in_body_block=true;
+            std::cout<<"DETECTED BODY: "<<current.name<<std::endl;            
         }
         else if(line.rfind("END",0)==0){
             //END BODY BLOCK
