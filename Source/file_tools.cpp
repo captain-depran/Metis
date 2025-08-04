@@ -25,6 +25,7 @@ void file_wipe(int id){
 
 void load_body_file(std::string file_name,std::vector<body>& output_body_list){
     body_import current;
+    std::vector<body_import> imported_bodies;
     std::ifstream body_file(file_name);
     std::string line;
     double host_mass = 1.989e30;
@@ -62,9 +63,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
         else if(line.rfind("END",0)==0){
             //END BODY BLOCK
             in_body_block=false;
-            state_vector inject_state=cart_state(host_mass,current.semi_maj,current.ecc,current.inc,current.long_asc_node,current.arg_peri,current.true_anom);
-            inject_state.r.print();
-            output_body_list.push_back(body(current.id,current.mass,inject_state.r,inject_state.v));
+            imported_bodies.push_back(current);
             current={};
         }
         else if(in_body_block){
@@ -81,6 +80,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
             
             switch (key_map.count(key)?key_map[key]:UNKNOWN){
                 case PARENT:
+                    current.parent=value;
                     break;
                 case MASS:
                     current.mass=std::stod(value);
@@ -110,12 +110,31 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
                     break;
             }
-
-
         }   
-        
+    }
+    body_file.close();
+    for (body_import& obj:imported_bodies){
+        if (obj.parent=="NONE"||obj.parent==""){
+            host_mass = obj.mass;
+            state_vector inject_state=cart_state(host_mass,obj.semi_maj,obj.ecc,obj.inc,obj.long_asc_node,obj.arg_peri,obj.true_anom);
+            obj.r=inject_state.r;
+            obj.v=inject_state.v;
+        }
+        else{
+            for (body_import& other_obj:imported_bodies){
+                if (other_obj.name==obj.parent){
+                    host_mass=other_obj.mass;
+                    state_vector inject_state=cart_state(host_mass,obj.semi_maj,obj.ecc,obj.inc,obj.long_asc_node,obj.arg_peri,obj.true_anom);
+                    obj.r=inject_state.r+other_obj.r;
+                    obj.v=inject_state.v+other_obj.v;
+                }
+            }
+        }
+
+        output_body_list.push_back(body(obj.id,obj.mass,obj.r,obj.v));
+        output_body_list.back().pos.print();
     }
     std::cout<<"BODY LOADING COMPLETED!"<<std::endl;
-    body_file.close();
+    
 }
 

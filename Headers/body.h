@@ -8,6 +8,7 @@
 
 struct body_import{
     std::string name;
+    std::string parent;
     int id;
     double radius;
     double mass;
@@ -17,12 +18,15 @@ struct body_import{
     double long_asc_node;
     double arg_peri;
     double true_anom;
+    vector3D r;
+    vector3D v;
 };
 
 class body{
     public:
         double mass;
         std::string name;
+        int parent_id=1;
         int id;
         vector3D pos;
         vector3D grav_result;

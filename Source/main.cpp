@@ -63,7 +63,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     int remainder = step_count%block_size;
     
 
-    load_body_file("../INPUT/bodies.cfg",system);
+    load_body_file("../INPUT/bodies (sun_earth_moon).cfg",system);
     system.push_back(sat);
     int sums_done=0;
 
@@ -133,7 +133,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 
     cout <<"\nSteps: "<<(timespace/stepsize)<<endl;
     cout <<"Step Size: "<<stepsize<<endl;
-    cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
+    //cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
 
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
@@ -142,16 +142,16 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 
 
 int main(){
-    double timespace=1.419e6;
-    double stepsize=1;
+    double timespace=3e7;
+    double stepsize=10;
     int step_count = timespace/stepsize;
     vector <body> system;
 
     int block_size=50000;
 
-    state_vector sat_state = cart_state(5.972e24, 3.2e8, 6.366752114666323E-02 , 0.090399023400701120079 ,6.0861431197501127954, 0.94809786727690115171, 3.1734449368968027372);
+    state_vector sat_state = cart_state(1.989e30,0.994*1.495881665467822E+11,1.687718540750569E-02,1*(PI/180),1.935070964759220E+02*(PI/180),2.685415079580933E+02*(PI/180),2.075770096136586E+02*(PI/180));
 
-    body sat(03,1000,sat_state.r,sat_state.v);
+    body sat(04,1000,sat_state.r,sat_state.v);
     
     
     //Last parameter is whether or not to log positions
@@ -161,15 +161,18 @@ int main(){
 
     cout << "---------------------------------"<<endl;
     cout << "Frame Centering in progress..." <<endl;
-    frame_center(1,1,4,step_count);
-    frame_center(1,2,5,step_count);
-    frame_center(1,3,6,step_count);
+    frame_center(1,1,5,step_count);
+    frame_center(1,2,6,step_count);
+    frame_center(1,3,7,step_count);
+    frame_center(1,4,8,step_count);
 
+
+    
     cout << "---------------------------------"<<endl;
     cout<< "Frame rotation in progress..."<<endl;
-    frame_swap(5,5,7,step_count);
-    frame_swap(5,6,8,step_count);
+    frame_swap(6,6,9,step_count);
+    frame_swap(6,8,10,step_count);
     cout << "---------------------------------"<<endl;
-
+    
     return 0;
 }
