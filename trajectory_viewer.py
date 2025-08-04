@@ -7,10 +7,9 @@ import plotly.io as pio
 
 pio.renderers.default='browser'
 
-host_data=np.fromfile("Source/4.bin",dtype=np.float64)
-moon_data=np.fromfile("Source/9.bin",dtype=np.float64)
-sat_data=np.fromfile("Source/10.bin",dtype=np.float64)
-#roid_data=np.fromfile("Source/8.bin",dtype=np.float64)
+host_data=np.fromfile("OUTPUT/4.bin",dtype=np.float64)
+moon_data=np.fromfile("OUTPUT/9.bin",dtype=np.float64)
+sat_data=np.fromfile("OUTPUT/8.bin",dtype=np.float64)
 
 host_pos = host_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)

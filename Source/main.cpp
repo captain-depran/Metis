@@ -63,7 +63,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     int remainder = step_count%block_size;
     
 
-    load_body_file("../INPUT/bodies (sun_earth_moon).cfg",system);
+    load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
     system.push_back(sat);
     int sums_done=0;
 
