@@ -26,7 +26,7 @@ void chunk_dump(body &obj,int dump_size){
     log_file.close();
 };
 
-void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double stepsize){
+void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double stepsize, double& current_t){
     if (system[0].pos_log.size()!=loop_size){
         craft.pos_log.resize(loop_size);
         for(body &obj:system){
@@ -35,6 +35,13 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
     };
     
     for (int step = 0; step < (loop_size); step++){
+            current_t+=stepsize;
+            for (manouver &mnvr:craft.all_manouvers){
+                if (current_t >= mnvr.time && mnvr.executed==false){
+                    craft.perform_manouver(mnvr,system[1]);
+                    mnvr.executed=true;
+                }
+            }
             craft.grav_result.zero();
             for (body &obj:system){
                 obj.grav_result.zero();
@@ -70,6 +77,7 @@ void block_save(spacecraft craft,vector<body> system,int block_size){
 void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq){
     thread block_writer;
     vector <body> system;
+    double current_t=0;
 
     int step_count = timespace/stepsize;
 
@@ -79,6 +87,10 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
 
     load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
     spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
+
+    craft.all_manouvers.push_back(manouver((vector3D(2800,0,0)), "Kick", 4.3e5));
+    craft.all_manouvers.push_back(manouver((vector3D(-600,-600,400)), "Kick the second", 4.8e5));
+
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();
@@ -102,7 +114,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
-    run_loop(craft,system,block_size,stepsize);
+    run_loop(craft,system,block_size,stepsize,current_t);
     cout<<"Intial Block done"<<endl;
 
     // Rest of Blocks
@@ -113,7 +125,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
             block_writer=thread(block_save,craft,system,block_size);
         };
 
-        run_loop(craft,system,block_size,stepsize);
+        run_loop(craft,system,block_size,stepsize,current_t);
         
         if (block_writer.joinable()){block_writer.join();};
 
@@ -133,7 +145,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     if (remainder > 0){
         auto start = high_resolution_clock::now();
 
-        run_loop(craft,system,remainder,stepsize);
+        run_loop(craft,system,remainder,stepsize,current_t);
 
         if(log_flag){
             thread block_writer(block_save,craft,system,remainder);
