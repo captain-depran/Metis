@@ -1,6 +1,7 @@
 #include "../Headers/file_tools.h"
 #include "../Headers/body.h"
 #include "../Headers/kep_to_cart.h"
+#include "../Headers/spacecraft.h"
 #include "../Headers/constants.h"
 #include <iostream>
 #include <fstream>
@@ -29,7 +30,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
     std::vector<body_import> imported_bodies;
     std::ifstream body_file(file_name);
     std::string line;
-    double host_mass = 1.989e30;
+    double host_mass;
     bool in_body_block=false;
 
     enum key_type {PARENT, MASS, RADIUS, SEMI_MAJ, ECC, INC, LONG_ASC_NODE, ARG_PERI, TRUE_ANOM, UNKNOWN};
@@ -131,11 +132,175 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
                 }
             }
         }
-
-        output_body_list.push_back(body(obj.id,obj.mass,obj.r,obj.v));
-        output_body_list.back().pos.print();
+        body new_body=body(obj.id,obj.mass,obj.r,obj.v);
+        new_body.set_name(obj.name);
+        output_body_list.push_back(new_body);
     }
     std::cout<<"BODY LOADING COMPLETED!"<<std::endl;
     
 }
 
+spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
+    body_import sat_params;
+    std::ifstream sat_file(file_name);
+    std::string line;
+    double host_mass;
+    bool injection=true;
+    bool reached_params=false;
+
+    enum key_type {PARENT, MASS, RADIUS, SEMI_MAJ, ECC, INC, LONG_ASC_NODE, ARG_PERI, TRUE_ANOM, UNKNOWN};
+    std::map<std::string, key_type> key_map{
+        {"PARENT", PARENT},
+        {"MASS", MASS},
+        {"RADIUS", RADIUS},
+        {"SEMI_MAJ", SEMI_MAJ},
+        {"ECC", ECC},
+        {"INC", INC},
+        {"LONG_ASC_NODE", LONG_ASC_NODE},
+        {"ARG_PERI", ARG_PERI},
+        {"TRUE_ANOM", TRUE_ANOM},
+        {"UNKNOWN", UNKNOWN}
+    };
+
+    if (!sat_file.is_open()){
+        std::cout<<"ERROR OPENING SPACECRAFT FILE"<<std::endl;
+        return spacecraft(0,0,0,0,0,0,0,0);
+    }
+    while((injection==true)&&getline(sat_file,line)){
+        if (line.empty() || line[0] == '#') continue;
+
+        else if (line.rfind("BODY",0)==0){
+            //BODY BLOCK DETECTION
+            std::stringstream ss(line);
+            std::string temp;
+            ss >> temp >> sat_params.id >> sat_params.name;
+            std::cout<<"DETECTED BODY: "<<sat_params.name<<std::endl;
+            reached_params=true;            
+        }
+        else if(line.rfind("END",0)==0){
+            //END BODY BLOCK
+            reached_params=false;
+            injection=false;
+        }
+        else if(reached_params){
+            std::size_t pos = line.find('=');
+            if (pos == std::string::npos) continue;
+            
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+            
+            key.erase(0, key.find_first_not_of(" \t"));
+            key.erase(key.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            switch (key_map.count(key)?key_map[key]:UNKNOWN){
+                case PARENT:
+                    sat_params.parent=value;
+                    break;
+                case MASS:
+                    sat_params.mass=std::stod(value);
+                    break;
+                case RADIUS:
+                    sat_params.radius=std::stod(value);
+                    break;                    
+                case SEMI_MAJ:
+                    sat_params.semi_maj=std::stod(value);
+                    break;                
+                case ECC:
+                    sat_params.ecc=std::stod(value);
+                    break;
+                case INC:
+                    sat_params.inc=(std::stod(value))*(PI/180);
+                    break;  
+                case LONG_ASC_NODE:
+                    sat_params.long_asc_node=(std::stod(value))*(PI/180);
+                    break; 
+                case ARG_PERI:
+                    sat_params.arg_peri=(std::stod(value))*(PI/180);
+                    break;          
+                case TRUE_ANOM:
+                    sat_params.true_anom=(std::stod(value))*(PI/180);
+                    break;   
+                default:
+                    std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
+                    break;
+            }
+        }   
+    }
+    sat_file.close();
+    for (body& obj:mass_bodies){
+        if (obj.name==sat_params.parent){
+            host_mass=obj.mass;
+            state_vector inject_state=cart_state(host_mass,sat_params.semi_maj,sat_params.ecc,sat_params.inc,sat_params.long_asc_node,sat_params.arg_peri,sat_params.true_anom);
+            sat_params.r=inject_state.r+obj.pos;
+            sat_params.v=inject_state.v+obj.vel;
+            return spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
+        };
+    }
+    std::cout<<"MATCH NOT FOUND"<<std::endl;
+    return spacecraft(0,0,0,0,0,0,0,0);
+}
+
+
+sim_settings load_settings_file(std::string file_name){
+
+    sim_settings settings;
+    std::ifstream config_file(file_name);
+    std::string line;
+
+    enum key_type {BODY_FILE, SAT_FILE, TIMESPAN, STEP_SIZE, LOG_FREQ, BUFFER_SIZE, UNKNOWN};
+    std::map<std::string, key_type> key_map{
+        {"BODY_FILE", BODY_FILE},
+        {"SAT_FILE", SAT_FILE},
+        {"TIMESPAN", TIMESPAN},
+        {"STEP_SIZE", STEP_SIZE},
+        {"LOG_FREQ", LOG_FREQ},
+        {"BUFFER_SIZE", BUFFER_SIZE},
+        {"UNKNOWN", UNKNOWN}
+    };
+    if (!config_file.is_open()){
+        std::cout<<"ERROR OPENING CONFIG FILE"<<std::endl;
+    };
+    while(getline(config_file,line)){
+        if (line.empty() || line[0] == '#') continue;
+        
+        else{
+            std::size_t pos = line.find('=');
+            if (pos == std::string::npos) continue;
+            
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+            
+            key.erase(0, key.find_first_not_of(" \t"));
+            key.erase(key.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            switch (key_map.count(key)?key_map[key]:UNKNOWN){
+                case BODY_FILE:
+                    settings.body_file_name.append(value);
+                    break;
+                case SAT_FILE:
+                    settings.sat_file_name.append(value);
+                    break;
+                case TIMESPAN:
+                    settings.timespan=std::stod(value);
+                    break;                    
+                case STEP_SIZE:
+                    settings.step_size=std::stod(value);
+                    break;                
+                case LOG_FREQ:
+                    settings.log_freq=std::stod(value);
+                    break;
+                case BUFFER_SIZE:
+                    settings.buffer_size=std::stod(value);
+                    break;    
+                default:
+                    std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
+                    break;
+            }
+        } 
+
+        };
+    config_file.close();
+    return settings;
+}

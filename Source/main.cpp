@@ -7,6 +7,7 @@
 #include "../Headers/frame_tools.h"
 #include "../Headers/kep_to_cart.h"
 #include "../Headers/body.h"
+#include "../Headers/spacecraft.h"
 #include <fstream>
 #include <string>
 #include <thread>
@@ -25,35 +26,48 @@ void chunk_dump(body &obj,int dump_size){
     log_file.close();
 };
 
-void run_loop(vector<body> &system, int loop_size, double stepsize){
+void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double stepsize){
     if (system[0].pos_log.size()!=loop_size){
+        craft.pos_log.resize(loop_size);
         for(body &obj:system){
             obj.pos_log.resize(loop_size);
         };
     };
     
     for (int step = 0; step < (loop_size); step++){
+            craft.grav_result.zero();
             for (body &obj:system){
                 obj.grav_result.zero();
-                obj.pos_update(stepsize,step);
+            }
+
+            for(body& obj:system){
+                craft.sum_grav(obj);
                 for (const body &other_body:system){
                     obj.sum_grav(other_body);
                 }
             }
+
             for (body &obj:system){
                 obj.vel_update(stepsize);
             }
+            craft.vel_update(stepsize);
+
+            for (body &obj:system){
+                obj.pos_update(stepsize,step);
+            }
+            craft.pos_update(stepsize,step);
         }
 };
 
-void block_save(vector<body> system,int block_size){
+void block_save(spacecraft craft,vector<body> system,int block_size){
     for (body &obj:system){
         chunk_dump(obj,block_size);
     }
+    chunk_dump(craft,block_size);
 };
 
 
-void run_sim(double timespace, double stepsize, int block_size, body sat, bool log_flag){
+void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq){
     thread block_writer;
     vector <body> system;
 
@@ -64,7 +78,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     
 
     load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
-    system.push_back(sat);
+    spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();
@@ -73,18 +87,22 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     for (body &obj:system){
         file_wipe(obj.id);
     }
+    file_wipe(craft.id);
+    craft.grav_result.zero();
 
     // Leapfrog velocity offset init
     for (body &obj:system){
         obj.grav_result.zero();
+        craft.sum_grav(obj);
         for (const body &other_body:system){
                 obj.sum_grav(other_body);
         }
         obj.init_vel(stepsize); 
     }
+    craft.init_vel(stepsize);
 
     // Block 1 run
-    run_loop(system,block_size,stepsize);
+    run_loop(craft,system,block_size,stepsize);
     cout<<"Intial Block done"<<endl;
 
     // Rest of Blocks
@@ -92,10 +110,10 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
         auto start = high_resolution_clock::now();
 
         if (log_flag){
-            block_writer=thread(block_save,system,block_size);
+            block_writer=thread(block_save,craft,system,block_size);
         };
 
-        run_loop(system,block_size,stepsize);
+        run_loop(craft,system,block_size,stepsize);
         
         if (block_writer.joinable()){block_writer.join();};
 
@@ -107,7 +125,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     }
 
     if(log_flag){
-        thread block_writer(block_save,system,block_size);
+        thread block_writer(block_save,craft,system,block_size);
         block_writer.join();
     };
 
@@ -115,10 +133,10 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     if (remainder > 0){
         auto start = high_resolution_clock::now();
 
-        run_loop(system,remainder,stepsize);
+        run_loop(craft,system,remainder,stepsize);
 
         if(log_flag){
-            thread block_writer(block_save,system,remainder);
+            thread block_writer(block_save,craft,system,remainder);
             block_writer.join();  
         };  
 
@@ -130,6 +148,7 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
     for (body &obj:system){
         obj.final_vel(stepsize);   
     }
+    craft.final_vel(stepsize);
 
     cout <<"\nSteps: "<<(timespace/stepsize)<<endl;
     cout <<"Step Size: "<<stepsize<<endl;
@@ -142,37 +161,44 @@ void run_sim(double timespace, double stepsize, int block_size, body sat, bool l
 
 
 int main(){
-    double timespace=3e7;
-    double stepsize=10;
+
+    bool log;
+
+    sim_settings settings=load_settings_file("INPUT/SIM_CONFIG.cfg");
+    double timespace=settings.timespan;
+    double stepsize=settings.step_size;
     int step_count = timespace/stepsize;
     vector <body> system;
 
-    int block_size=50000;
+    int block_size=settings.buffer_size;
 
-    state_vector sat_state = cart_state(1.989e30,0.994*1.495881665467822E+11,1.687718540750569E-02,1*(PI/180),1.935070964759220E+02*(PI/180),2.685415079580933E+02*(PI/180),2.075770096136586E+02*(PI/180));
+    if (settings.log_freq=0){
+        log=false;
+        settings.log_freq=1;
+    }
+    else{
+        log=true;
+    };
 
-    body sat(04,1000,sat_state.r,sat_state.v);
-    
-    
-    //Last parameter is whether or not to log positions
-    run_sim(timespace,stepsize,block_size,sat,true);
-
-
+    run_sim(settings.body_file_name,settings.sat_file_name,
+        timespace,stepsize,block_size,
+        log,settings.log_freq);
 
     cout << "---------------------------------"<<endl;
     cout << "Frame Centering in progress..." <<endl;
-    frame_center(1,1,5,step_count);
-    frame_center(1,2,6,step_count);
-    frame_center(1,3,7,step_count);
-    frame_center(1,4,8,step_count);
+    frame_center(2,1,5,step_count);
+    frame_center(2,2,6,step_count);
+    frame_center(2,3,7,step_count);
+    frame_center(2,99,8,step_count);
 
 
-    
+    /*
     cout << "---------------------------------"<<endl;
     cout<< "Frame rotation in progress..."<<endl;
-    frame_swap(6,6,9,step_count);
-    frame_swap(6,8,10,step_count);
+    frame_swap(7,7,9,step_count);
+    frame_swap(7,8,10,step_count);
     cout << "---------------------------------"<<endl;
+    */
     
     return 0;
 }

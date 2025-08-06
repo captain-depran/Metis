@@ -7,8 +7,8 @@ import plotly.io as pio
 
 pio.renderers.default='browser'
 
-host_data=np.fromfile("OUTPUT/4.bin",dtype=np.float64)
-moon_data=np.fromfile("OUTPUT/9.bin",dtype=np.float64)
+host_data=np.fromfile("OUTPUT/5.bin",dtype=np.float64)
+moon_data=np.fromfile("OUTPUT/7.bin",dtype=np.float64)
 sat_data=np.fromfile("OUTPUT/8.bin",dtype=np.float64)
 
 host_pos = host_data.reshape(-1, 3)
@@ -29,14 +29,16 @@ sat_pos = pd.DataFrame(sat_pos, columns=['x', 'y', 'z'])
 
 fig = go.Figure()   
 fig.add_trace(go.Scatter3d(x=[0], y=[0],z=[0]))
-fig.add_trace(go.Scatter3d(x=moon_pos["x"][::10], y=moon_pos["y"][::10],z=moon_pos["z"][::10], mode='lines'))
-fig.add_trace(go.Scatter3d(x=sat_pos["x"][::10], y=sat_pos["y"][::10],z=sat_pos["z"][::10], mode='lines'))
+fig.add_trace(go.Scatter3d(x=moon_pos["x"][::100], y=moon_pos["y"][::100],z=moon_pos["z"][::100], mode='lines'))
+fig.add_trace(go.Scatter3d(x=sat_pos["x"][::100], y=sat_pos["y"][::100],z=sat_pos["z"][::100], mode='lines'))
 #fig.add_trace(go.Scatter3d(x=roid_pos["x"][::1], y=roid_pos["y"][::1],z=roid_pos["z"][::1], mode='lines'))
 
 fig.update_layout(scene_aspectmode='data')
 fig.show()
-print(sat_pos)
-#print(np.min(np.sqrt(((roid_pos["x"]-sat_pos["x"])**2)+((roid_pos["y"]-sat_pos["y"])**2)+((roid_pos["z"]-sat_pos["z"])**2))))
+#print(moon_pos)
+#lunar_r=(np.sqrt(((moon_pos["x"])**2)+((moon_pos["y"])**2)+((moon_pos["z"])**2)))
+#plt.plot(lunar_r)
+#plt.show()
 
 """
 #MATPLOTLIB VERSION
