@@ -6,7 +6,7 @@ Included is a trajectory_viewer python program to allow you to visualise any dat
 
 Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders.
 
-##How do I use this?
+## How do I use this?
 1) Open SIM_CONFIG.cfg and change the parameters
 2) Either create or edit a bodies file containing the celestial bodies you wish to involve. I ship with a file with the Sun, Earth and the Moon with parameters from JPL Horizons
 3) Create or modify a spacecraft file
@@ -15,7 +15,7 @@ Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders.
 6) Wait, get a cup of tea, etc etc
 7) Plot the results with the packaged python program!
 
-##NOTES AND CAVEATS
+## NOTES AND CAVEATS
 - Currently, sim is hardcoded to recenter to a geocentric, ecliptic alligned frame after the run. The sun is also not plotted, but it is there.
 - I would advise not adding or removing any bodies from the config file for now, due to underhood stop-gap measures
 - Python requires Plotly for 3d plots, but there is a matplotlib version commented in the code
