@@ -234,7 +234,9 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
             state_vector inject_state=cart_state(host_mass,sat_params.semi_maj,sat_params.ecc,sat_params.inc,sat_params.long_asc_node,sat_params.arg_peri,sat_params.true_anom);
             sat_params.r=inject_state.r+obj.pos;
             sat_params.v=inject_state.v+obj.vel;
-            return spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
+            spacecraft craft=spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
+            craft.set_name(sat_params.name);
+            return craft;
         };
     }
     std::cout<<"MATCH NOT FOUND"<<std::endl;
