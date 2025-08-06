@@ -1,15 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+import pathlib
 import plotly.graph_objects as go
 import plotly.io as pio
 
 pio.renderers.default='browser'
 
-host_data=np.fromfile("OUTPUT/5.bin",dtype=np.float64)
-moon_data=np.fromfile("OUTPUT/7.bin",dtype=np.float64)
-sat_data=np.fromfile("OUTPUT/8.bin",dtype=np.float64)
+current_wd=pathlib.Path().absolute()
+
+
+host_data=np.fromfile(current_wd/"OUTPUT/5.bin",dtype=np.float64)
+moon_data=np.fromfile(current_wd/"OUTPUT/7.bin",dtype=np.float64)
+sat_data=np.fromfile(current_wd/"OUTPUT/8.bin",dtype=np.float64)
 
 host_pos = host_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)
