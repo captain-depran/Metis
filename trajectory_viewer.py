@@ -10,9 +10,9 @@ pio.renderers.default='browser'
 current_wd=pathlib.Path().absolute()
 
 
-host_data=np.fromfile(current_wd/"OUTPUT/5.bin",dtype=np.float64)
-moon_data=np.fromfile(current_wd/"OUTPUT/7.bin",dtype=np.float64)
-sat_data=np.fromfile(current_wd/"OUTPUT/8.bin",dtype=np.float64)
+host_data=np.fromfile(current_wd/"OUTPUT/1_centered.bin",dtype=np.float64)
+moon_data=np.fromfile(current_wd/"OUTPUT/3_centered.bin",dtype=np.float64)
+sat_data=np.fromfile(current_wd/"OUTPUT/99_centered.bin",dtype=np.float64)
 
 host_pos = host_data.reshape(-1, 3)
 moon_pos = moon_data.reshape(-1, 3)
