@@ -11,13 +11,34 @@
 #include <fstream>
 #include <string>
 #include <thread>
-#include <sstream> 
+#include <sstream>
+#include <iomanip> 
 
 
 using namespace std;
 using namespace std::chrono;
 
+// Function to format time in days, hours, minutes, and seconds, courtesy of the internet
+string formatTime(double totalSeconds) {
+    // Separate integer and fractional parts
+    long long intSeconds = static_cast<long long>(std::floor(totalSeconds));
+    double fractional = totalSeconds - intSeconds;
 
+    int days    = intSeconds / 86400;
+    int hours   = (intSeconds % 86400) / 3600;
+    int minutes = (intSeconds % 3600) / 60;
+    int seconds = intSeconds % 60;
+
+    std::ostringstream oss;
+    oss << days << "d "
+        << hours << "h "
+        << minutes << "m ";
+
+    // Include fractional seconds with up to 3 decimal places (milliseconds)
+    oss << std::fixed << std::setprecision(3) << (seconds + fractional) << "s";
+
+    return oss.str();
+}
 
 void chunk_dump(body &obj,int dump_size){
     string str=file_string(obj.id);
@@ -38,7 +59,7 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
             current_t+=stepsize;
             for (manouver &mnvr:craft.all_manouvers){
                 if (current_t >= mnvr.time && mnvr.executed==false){
-                    craft.perform_manouver(mnvr,system[1]);
+                    craft.perform_manouver(mnvr,current_t);
                     mnvr.executed=true;
                 }
             }
@@ -63,6 +84,7 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
                 obj.pos_update(stepsize,step);
             }
             craft.pos_update(stepsize,step);
+            craft.situation_update(system);
         }
 };
 
@@ -88,9 +110,6 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
     spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
 
-    craft.all_manouvers.push_back(manouver((vector3D(2800,0,0)), "Kick", 4.3e5));
-    craft.all_manouvers.push_back(manouver((vector3D(-600,-600,400)), "Kick the second", 4.8e5));
-
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();
@@ -114,8 +133,8 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
+    craft.situation_update(system);
     run_loop(craft,system,block_size,stepsize,current_t);
-    cout<<"Intial Block done"<<endl;
 
     // Rest of Blocks
     for (int block = 1; block<num_blocks;block++){
@@ -132,7 +151,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
 
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(stop - start);
-        cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
+        cout <<"\r"<< "Progress: "<< ((100*(block+1))/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
 
     }
 
@@ -162,13 +181,15 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     }
     craft.final_vel(stepsize);
 
-    cout <<"\nSteps: "<<(timespace/stepsize)<<endl;
-    cout <<"Step Size: "<<stepsize<<endl;
-    //cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
-
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
-    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
+    cout << "\nExecution Time: "<< duration.count() << " milliseconds" <<endl;
+    cout << "---------------------------------"<<endl;
+    for (manouver &mnvr:craft.all_manouvers){
+        if (mnvr.executed==true){
+            cout << "MANOUVER "<<mnvr.label<<" EXECUTED AT "<<formatTime(mnvr.executed_time)<<endl;
+        }
+    }
 };
 
 
@@ -191,6 +212,17 @@ int main(){
     else{
         log=true;
     };
+
+    cout << "---------------------------------"<<endl;
+    cout <<"Time Limit: "<<formatTime(timespace)<<endl;
+    cout <<"Step Size: "<<stepsize<<endl;
+    cout <<"Steps: "<<(timespace/stepsize)<<endl;
+    cout <<"Buffer Size: "<<block_size<<endl;
+    cout <<"Spacecraft File: "<<settings.sat_file_name<<endl;
+    cout <<"Body File: "<<settings.body_file_name<<endl;
+    cout << "---------------------------------"<<endl;
+    
+
 
     run_sim(settings.body_file_name,settings.sat_file_name,
         timespace,stepsize,block_size,
