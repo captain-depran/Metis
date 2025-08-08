@@ -4,7 +4,6 @@
 #include <vector>
 
 
-
 body::body(int id_,double mass_,vector3D r, vector3D v){
     pos_log.resize(1);
     id=id_;

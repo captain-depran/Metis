@@ -17,10 +17,12 @@ vector3D rot_frame(vector3D& rotator_pos, vector3D& obj_pos){
 };
 
 
-void frame_center(int reference_id, int target_id, int out_id,int entries){
+void frame_center(int reference_id,int target_id,int entries){
     string ref_str=file_string(reference_id);
     string tgt_str=file_string(target_id);
-    string out_str=file_string(out_id);
+    string out_str="OUTPUT/";
+    out_str.append(std::to_string(target_id));
+    out_str.append("_centered.bin");
     ifstream ref_file(ref_str, ios::binary);
     ifstream tgt_file(tgt_str, ios::binary);
     ofstream out_file(out_str,ios::binary);

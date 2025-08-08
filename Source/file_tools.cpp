@@ -11,10 +11,8 @@
 #include <map>
 
 std::string file_string(int id){
-    char file_name[6];
-    sprintf(file_name,"%d",id);
     std::string str("OUTPUT/");
-    str.append(file_name);
+    str=str+std::to_string(id);
     str.append(".bin");
     return str;
 };
@@ -147,6 +145,7 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
     double host_mass;
     bool injection=true;
     bool reached_params=false;
+    bool valid_sat=false;
 
     enum key_type {PARENT, MASS, RADIUS, SEMI_MAJ, ECC, INC, LONG_ASC_NODE, ARG_PERI, TRUE_ANOM, UNKNOWN};
     std::map<std::string, key_type> key_map{
@@ -174,7 +173,7 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
             std::stringstream ss(line);
             std::string temp;
             ss >> temp >> sat_params.id >> sat_params.name;
-            std::cout<<"DETECTED BODY: "<<sat_params.name<<std::endl;
+            std::cout<<"DETECTED SPACECRAFT: "<<sat_params.name<<std::endl;
             reached_params=true;            
         }
         else if(line.rfind("END",0)==0){
@@ -227,18 +226,75 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
             }
         }   
     }
-    sat_file.close();
+    
     for (body& obj:mass_bodies){
         if (obj.name==sat_params.parent){
             host_mass=obj.mass;
             state_vector inject_state=cart_state(host_mass,sat_params.semi_maj,sat_params.ecc,sat_params.inc,sat_params.long_asc_node,sat_params.arg_peri,sat_params.true_anom);
             sat_params.r=inject_state.r+obj.pos;
             sat_params.v=inject_state.v+obj.vel;
-            return spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
+            valid_sat=true;
+            break;
         };
     }
-    std::cout<<"MATCH NOT FOUND"<<std::endl;
-    return spacecraft(0,0,0,0,0,0,0,0);
+    if (valid_sat){
+        spacecraft craft=spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
+        craft.set_name(sat_params.name);
+        load_mnvrs(sat_file, craft);
+        sat_file.close();
+        std::cout<<"SPACECRAFT LOADING COMPLETED!"<<std::endl;
+        return craft;
+    }
+    else{
+        sat_file.close();
+        std::cout<<"SPACECRAFT: INVALID PARENT"<<std::endl;
+        return spacecraft(0,0,0,0,0,0,0,0);
+    }
+}
+
+void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
+    enum trigger_type {TIME,PE,AP,NODE,ANOM,UNKNOWN};
+
+    std::map<std::string, trigger_type> trig_map{
+        {"TIME", TIME},
+        {"PE", PE},
+        {"AP", AP},
+        {"NODE", NODE},
+        {"ANOM", ANOM},
+        {"UNKNOWN", UNKNOWN}
+    };
+
+    std::string line;
+    while(getline(sat_file,line)){
+        if (line.empty() || line[0] == '#') continue;
+
+        else if(line.rfind("MNV",0)==0){
+            std::stringstream ss(line);
+            std::string item;
+            std::vector<std::string> parts;
+            while (std::getline(ss,item,':')){
+                parts.push_back(item);
+            }
+            vector3D dv=vector3D(std::stod(parts[2]),std::stod(parts[3]),std::stod(parts[4]));
+            switch (trig_map.count(parts[5])?trig_map[parts[5]]:UNKNOWN){
+                case TIME:
+                    craft.all_manouvers.push_back(manouver(dv, parts[1], std::stod(parts[6])));
+                    break;
+                case PE:
+                    break;
+                case AP:
+                    break;
+                case NODE:
+                    break;
+                case ANOM:
+                    break;
+                default:
+                    std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
+                    break;
+            }
+        };
+    }
+
 }
 
 
@@ -248,7 +304,7 @@ sim_settings load_settings_file(std::string file_name){
     std::ifstream config_file(file_name);
     std::string line;
 
-    enum key_type {BODY_FILE, SAT_FILE, TIMESPAN, STEP_SIZE, LOG_FREQ, BUFFER_SIZE, UNKNOWN};
+    enum key_type {BODY_FILE, SAT_FILE, TIMESPAN, STEP_SIZE, LOG_FREQ, BUFFER_SIZE, CORE_BODY, UNKNOWN};
     std::map<std::string, key_type> key_map{
         {"BODY_FILE", BODY_FILE},
         {"SAT_FILE", SAT_FILE},
@@ -256,6 +312,7 @@ sim_settings load_settings_file(std::string file_name){
         {"STEP_SIZE", STEP_SIZE},
         {"LOG_FREQ", LOG_FREQ},
         {"BUFFER_SIZE", BUFFER_SIZE},
+        {"CORE_BODY", CORE_BODY},
         {"UNKNOWN", UNKNOWN}
     };
     if (!config_file.is_open()){
@@ -293,6 +350,9 @@ sim_settings load_settings_file(std::string file_name){
                     break;
                 case BUFFER_SIZE:
                     settings.buffer_size=std::stod(value);
+                    break;
+                case CORE_BODY:
+                    settings.core_body_id=std::stoi(value);
                     break;    
                 default:
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;

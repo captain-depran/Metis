@@ -38,7 +38,7 @@ class body{
         body(int id_,double mass_,double x, double y, double z, double vx, double vy, double vz);
         void set_name(std::string name_);
         vector3D grav_accel(body const& attrac);
-        void sum_grav(body const& attrac);
+        virtual void sum_grav(body const& attrac);
         void vel_update(double dt);
         void pos_update(double dt,int step);
         void init_vel(double dt);

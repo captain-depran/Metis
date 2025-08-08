@@ -15,7 +15,31 @@ Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders.
 6) Wait, get a cup of tea, etc etc
 7) Plot the results with the packaged python program!
 
+## How Do I define a Manouver?
+In your spacecraft file, after the craft's intial conditions are specified, the software will look for specific event tags to parse. Currently the only one is 'MNV', which is short hand for 'Manouver'.
+
+A command is specific as follows -> `MNV : LABEL : PROGRADE : RADIAL : NORMAL : TRIGGER_TYPE : TRIGGER_PARAM`
+
+`LABEL` = A string labelling the manouver for output tracking
+
+`PROGRADE` = Magnitude of manouver along the direction of travel
+
+`RADIAL` = Magnitude of manouver away ('outwards') from central body
+
+`NORMAL` = Magnitude of manouver 'upwards' from the orbital plane formed by the prograde and radial directions
+
+`TRIGGER_TYPE` = What type of trigger the manouver has (See below)
+
+`TRIGGER_PARAM` = The parameter for the passed trigger type (See below)
+
+You can specify as many manouvers as you'd like, and in any order. Any untriggerable manouvers won't cause errors, they just won't happen.
+
+Example:  `MNV:Earth Transfer:2500:150:0:TIME:15000`
+
+### Triggers
+
+- `TIME` -> Takes seconds as a parameter, will trigger at simulation time equal to this value (0 being start)
+
 ## NOTES AND CAVEATS
-- Currently, sim is hardcoded to recenter to a geocentric, ecliptic alligned frame after the run. The sun is also not plotted, but it is there.
-- I would advise not adding or removing any bodies from the config file for now, due to underhood stop-gap measures
 - Python requires Plotly for 3d plots, but there is a matplotlib version commented in the code
+- Currently only single body reference frames work for plotting, as in, you select a body to be the center of the system

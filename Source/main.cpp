@@ -11,13 +11,34 @@
 #include <fstream>
 #include <string>
 #include <thread>
-#include <sstream> 
+#include <sstream>
+#include <iomanip> 
 
 
 using namespace std;
 using namespace std::chrono;
 
+// Function to format time in days, hours, minutes, and seconds, courtesy of the internet
+string formatTime(double totalSeconds) {
+    // Separate integer and fractional parts
+    long long intSeconds = static_cast<long long>(std::floor(totalSeconds));
+    double fractional = totalSeconds - intSeconds;
 
+    int days    = intSeconds / 86400;
+    int hours   = (intSeconds % 86400) / 3600;
+    int minutes = (intSeconds % 3600) / 60;
+    int seconds = intSeconds % 60;
+
+    std::ostringstream oss;
+    oss << days << "d "
+        << hours << "h "
+        << minutes << "m ";
+
+    // Include fractional seconds with up to 3 decimal places (milliseconds)
+    oss << std::fixed << std::setprecision(3) << (seconds + fractional) << "s";
+
+    return oss.str();
+}
 
 void chunk_dump(body &obj,int dump_size){
     string str=file_string(obj.id);
@@ -26,7 +47,7 @@ void chunk_dump(body &obj,int dump_size){
     log_file.close();
 };
 
-void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double stepsize){
+void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double stepsize, double& current_t){
     if (system[0].pos_log.size()!=loop_size){
         craft.pos_log.resize(loop_size);
         for(body &obj:system){
@@ -35,6 +56,13 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
     };
     
     for (int step = 0; step < (loop_size); step++){
+            current_t+=stepsize;
+            for (manouver &mnvr:craft.all_manouvers){
+                if (current_t >= mnvr.time && mnvr.executed==false){
+                    craft.perform_manouver(mnvr,current_t);
+                    mnvr.executed=true;
+                }
+            }
             craft.grav_result.zero();
             for (body &obj:system){
                 obj.grav_result.zero();
@@ -56,6 +84,7 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
                 obj.pos_update(stepsize,step);
             }
             craft.pos_update(stepsize,step);
+            craft.situation_update(system);
         }
 };
 
@@ -67,9 +96,10 @@ void block_save(spacecraft craft,vector<body> system,int block_size){
 };
 
 
-void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq){
+void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq,vector<int> &body_ids){
     thread block_writer;
     vector <body> system;
+    double current_t=0;
 
     int step_count = timespace/stepsize;
 
@@ -86,8 +116,10 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     //intial block
     for (body &obj:system){
         file_wipe(obj.id);
+        body_ids.push_back(obj.id);
     }
     file_wipe(craft.id);
+    body_ids.push_back(craft.id);
     craft.grav_result.zero();
 
     // Leapfrog velocity offset init
@@ -102,8 +134,8 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
-    run_loop(craft,system,block_size,stepsize);
-    cout<<"Intial Block done"<<endl;
+    craft.situation_update(system);
+    run_loop(craft,system,block_size,stepsize,current_t);
 
     // Rest of Blocks
     for (int block = 1; block<num_blocks;block++){
@@ -113,14 +145,14 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
             block_writer=thread(block_save,craft,system,block_size);
         };
 
-        run_loop(craft,system,block_size,stepsize);
+        run_loop(craft,system,block_size,stepsize,current_t);
         
         if (block_writer.joinable()){block_writer.join();};
 
 
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(stop - start);
-        cout <<"\r"<< "Progress: "<< ((100*block)/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
+        cout <<"\r"<< "Progress: "<< ((100*(block+1))/num_blocks) << "% | Block Time: "<< duration.count() << " milliseconds        ";
 
     }
 
@@ -133,7 +165,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     if (remainder > 0){
         auto start = high_resolution_clock::now();
 
-        run_loop(craft,system,remainder,stepsize);
+        run_loop(craft,system,remainder,stepsize,current_t);
 
         if(log_flag){
             thread block_writer(block_save,craft,system,remainder);
@@ -150,20 +182,21 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     }
     craft.final_vel(stepsize);
 
-    cout <<"\nSteps: "<<(timespace/stepsize)<<endl;
-    cout <<"Step Size: "<<stepsize<<endl;
-    //cout <<"Sums done on satellite: "<<system[2].bodies_felt<<endl;
-
     auto total_stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
-    cout << "Execution Time: "<< duration.count() << " milliseconds" <<endl;
+    cout << "\nExecution Time: "<< duration.count() << " milliseconds" <<endl;
+    cout << "---------------------------------"<<endl;
+    for (manouver &mnvr:craft.all_manouvers){
+        if (mnvr.executed==true){
+            cout << "MANOUVER "<<mnvr.label<<" EXECUTED AT "<<formatTime(mnvr.executed_time)<<endl;
+        }
+    }
 };
 
 
 int main(){
-
+    vector<int> body_ids;
     bool log;
-
     sim_settings settings=load_settings_file("INPUT/SIM_CONFIG.cfg");
     double timespace=settings.timespan;
     double stepsize=settings.step_size;
@@ -180,17 +213,33 @@ int main(){
         log=true;
     };
 
-    run_sim(settings.body_file_name,settings.sat_file_name,
-        timespace,stepsize,block_size,
-        log,settings.log_freq);
+    cout << "---------------------------------"<<endl;
+    cout <<"Time Limit: "<<formatTime(timespace)<<endl;
+    cout <<"Step Size: "<<stepsize<<endl;
+    cout <<"Steps: "<<(timespace/stepsize)<<endl;
+    cout <<"Buffer Size: "<<block_size<<endl;
+    cout <<"Spacecraft File: "<<settings.sat_file_name<<endl;
+    cout <<"Body File: "<<settings.body_file_name<<endl;
+    cout << "---------------------------------"<<endl;
+    
+
+
+    run_sim(settings.body_file_name,
+        settings.sat_file_name,
+        timespace,
+        stepsize,
+        block_size,
+        log,
+        settings.log_freq,
+        body_ids);
 
     cout << "---------------------------------"<<endl;
     cout << "Frame Centering in progress..." <<endl;
-    frame_center(2,1,5,step_count);
-    frame_center(2,2,6,step_count);
-    frame_center(2,3,7,step_count);
-    frame_center(2,99,8,step_count);
-
+    for (int &id:body_ids){
+        frame_center(settings.core_body_id,id,step_count);
+    
+    };
+    cout << "---------------------------------"<<endl;
 
     /*
     cout << "---------------------------------"<<endl;
