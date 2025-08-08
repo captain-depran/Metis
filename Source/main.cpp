@@ -96,7 +96,7 @@ void block_save(spacecraft craft,vector<body> system,int block_size){
 };
 
 
-void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq){
+void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq,vector<int> &body_ids){
     thread block_writer;
     vector <body> system;
     double current_t=0;
@@ -109,7 +109,6 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
 
     load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
     spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
-
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();
@@ -117,8 +116,10 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     //intial block
     for (body &obj:system){
         file_wipe(obj.id);
+        body_ids.push_back(obj.id);
     }
     file_wipe(craft.id);
+    body_ids.push_back(craft.id);
     craft.grav_result.zero();
 
     // Leapfrog velocity offset init
@@ -194,9 +195,8 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
 
 
 int main(){
-
+    vector<int> body_ids;
     bool log;
-
     sim_settings settings=load_settings_file("INPUT/SIM_CONFIG.cfg");
     double timespace=settings.timespan;
     double stepsize=settings.step_size;
@@ -224,16 +224,21 @@ int main(){
     
 
 
-    run_sim(settings.body_file_name,settings.sat_file_name,
-        timespace,stepsize,block_size,
-        log,settings.log_freq);
+    run_sim(settings.body_file_name,
+        settings.sat_file_name,
+        timespace,
+        stepsize,
+        block_size,
+        log,
+        settings.log_freq,
+        body_ids);
 
     cout << "---------------------------------"<<endl;
     cout << "Frame Centering in progress..." <<endl;
-    frame_center(2,1,5,step_count);
-    frame_center(2,2,6,step_count);
-    frame_center(2,3,7,step_count);
-    frame_center(2,99,8,step_count);
+    for (int &id:body_ids){
+        frame_center(settings.core_body_id,id,step_count);
+    
+    };
     cout << "---------------------------------"<<endl;
 
     /*
