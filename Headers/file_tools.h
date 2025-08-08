@@ -12,8 +12,9 @@ struct sim_settings{
     std::string sat_file_name = "INPUT/";
     double timespan;
     double step_size;
-    int log_freq;
-    int buffer_size;
+    int log_freq = 1;
+    int buffer_size = 50000;
+    int core_body_id = 1;
 };
 
 std::string file_string(int id);

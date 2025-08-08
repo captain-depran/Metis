@@ -11,10 +11,8 @@
 #include <map>
 
 std::string file_string(int id){
-    char file_name[6];
-    sprintf(file_name,"%d",id);
     std::string str("OUTPUT/");
-    str.append(file_name);
+    str=str+std::to_string(id);
     str.append(".bin");
     return str;
 };
@@ -306,7 +304,7 @@ sim_settings load_settings_file(std::string file_name){
     std::ifstream config_file(file_name);
     std::string line;
 
-    enum key_type {BODY_FILE, SAT_FILE, TIMESPAN, STEP_SIZE, LOG_FREQ, BUFFER_SIZE, UNKNOWN};
+    enum key_type {BODY_FILE, SAT_FILE, TIMESPAN, STEP_SIZE, LOG_FREQ, BUFFER_SIZE, CORE_BODY, UNKNOWN};
     std::map<std::string, key_type> key_map{
         {"BODY_FILE", BODY_FILE},
         {"SAT_FILE", SAT_FILE},
@@ -314,6 +312,7 @@ sim_settings load_settings_file(std::string file_name){
         {"STEP_SIZE", STEP_SIZE},
         {"LOG_FREQ", LOG_FREQ},
         {"BUFFER_SIZE", BUFFER_SIZE},
+        {"CORE_BODY", CORE_BODY},
         {"UNKNOWN", UNKNOWN}
     };
     if (!config_file.is_open()){
@@ -351,6 +350,9 @@ sim_settings load_settings_file(std::string file_name){
                     break;
                 case BUFFER_SIZE:
                     settings.buffer_size=std::stod(value);
+                    break;
+                case CORE_BODY:
+                    settings.core_body_id=std::stoi(value);
                     break;    
                 default:
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
