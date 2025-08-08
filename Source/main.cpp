@@ -234,7 +234,7 @@ int main(){
     frame_center(2,2,6,step_count);
     frame_center(2,3,7,step_count);
     frame_center(2,99,8,step_count);
-
+    cout << "---------------------------------"<<endl;
 
     /*
     cout << "---------------------------------"<<endl;
