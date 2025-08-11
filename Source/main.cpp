@@ -60,7 +60,6 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
             for (manouver &mnvr:craft.all_manouvers){
                 if (current_t >= mnvr.time && mnvr.executed==false){
                     craft.perform_manouver(mnvr,current_t);
-                    mnvr.executed=true;
                 }
             }
             craft.grav_result.zero();
@@ -186,7 +185,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     auto duration = duration_cast<milliseconds>(total_stop - total_start);
     cout << "\nExecution Time: "<< duration.count() << " milliseconds" <<endl;
     cout << "---------------------------------"<<endl;
-    for (manouver &mnvr:craft.all_manouvers){
+    for (manouver &mnvr:craft.complete_manouvers){
         if (mnvr.executed==true){
             cout << "MANOUVER "<<mnvr.label<<" EXECUTED AT "<<formatTime(mnvr.executed_time)<<endl;
         }

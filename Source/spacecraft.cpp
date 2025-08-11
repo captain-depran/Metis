@@ -27,6 +27,8 @@ void spacecraft::perform_manouver(manouver& mnvr,double& current_t){
     vector3D dv_inertial = inertial_dv(mnvr, parent_pos, parent_vel);
     vel=vel+dv_inertial;
     mnvr.executed_time=current_t;
+    mnvr.executed=true; // Mark the manouver as executed
+    complete_manouvers.push_back(mnvr); // Store the executed manouver
 }
 void spacecraft::sum_grav(body const& attrac){
     bool same_body=(attrac.id!=id);

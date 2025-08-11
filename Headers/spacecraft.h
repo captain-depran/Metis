@@ -27,6 +27,7 @@ class spacecraft : public body{
         vector3D parent_vel;
         void sum_grav(body const& attrac) override;
         std::vector<manouver> all_manouvers;
+        std::vector<manouver> complete_manouvers;
         vector3D inertial_dv(manouver mnvr, vector3D parent_pos, vector3D parent_vel);
         void perform_manouver(manouver& mnvr,double& current_t);
         void situation_update(std::vector<body> &system);
