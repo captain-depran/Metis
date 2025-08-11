@@ -237,10 +237,11 @@ int main(){
     cout << "Frame Centering in progress..." <<endl;
     for (int &id:body_ids){
         frame_center(settings.core_body_id,id,step_count);
-    
     };
     cout << "---------------------------------"<<endl;
 
+
+    
     /*
     cout << "---------------------------------"<<endl;
     cout<< "Frame rotation in progress..."<<endl;
@@ -249,5 +250,7 @@ int main(){
     cout << "---------------------------------"<<endl;
     */
     
+    cout <<"DONE! Press ENTER to exit."<<endl;
+    cin.ignore(); // Wait for user input before exiting
     return 0;
 }
