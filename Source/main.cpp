@@ -78,12 +78,12 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
                 obj.vel_update(stepsize);
             }
             craft.vel_update(stepsize);
-
             for (body &obj:system){
                 obj.pos_update(stepsize,step);
             }
             craft.pos_update(stepsize,step);
-            craft.situation_update(system);
+            craft.situation_update(system,false);
+            
         }
 };
 
@@ -120,7 +120,6 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     file_wipe(craft.id);
     body_ids.push_back(craft.id);
     craft.grav_result.zero();
-
     // Leapfrog velocity offset init
     for (body &obj:system){
         obj.grav_result.zero();
@@ -133,7 +132,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
-    craft.situation_update(system);
+    craft.situation_update(system,true);
     run_loop(craft,system,block_size,stepsize,current_t);
 
     // Rest of Blocks

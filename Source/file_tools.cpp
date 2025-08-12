@@ -113,7 +113,9 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
         }   
     }
     body_file.close();
+    int current_index=0;
     for (body_import& obj:imported_bodies){
+        
         if (obj.parent=="NONE"||obj.parent==""){
             host_mass = obj.mass;
             state_vector inject_state=cart_state(host_mass,obj.semi_maj,obj.ecc,obj.inc,obj.long_asc_node,obj.arg_peri,obj.true_anom);
@@ -132,7 +134,9 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
         }
         body new_body=body(obj.id,obj.mass,obj.r,obj.v);
         new_body.set_name(obj.name);
+        new_body.system_index=current_index;
         output_body_list.push_back(new_body);
+        current_index++;
     }
     std::cout<<"BODY LOADING COMPLETED!"<<std::endl;
     

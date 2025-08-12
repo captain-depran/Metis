@@ -3,6 +3,7 @@
 
 #include "../Headers/vector3D.h"
 #include "../Headers/body.h"
+#include "../Headers/kep_cart.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -23,13 +24,15 @@ class spacecraft : public body{
         using body::body;
         double current_max_grav=0;
         int dominant_body_id=0;
+        int dominant_body_index=0;
+        kep_state orbit_params;
         vector3D parent_pos;
-        vector3D parent_vel;
+        vector3D parent_vel; 
         void sum_grav(body const& attrac) override;
         std::vector<manouver> all_manouvers;
         std::vector<manouver> complete_manouvers;
         vector3D inertial_dv(manouver mnvr, vector3D parent_pos, vector3D parent_vel);
         void perform_manouver(manouver& mnvr,double& current_t);
-        void situation_update(std::vector<body> &system);
+        void situation_update(std::vector<body> &system,bool kep_check);
 };
 #endif

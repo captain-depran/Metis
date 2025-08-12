@@ -1,6 +1,7 @@
 #include "../Headers/body.h"
 #include "../Headers/vector3D.h"
 #include "../Headers/spacecraft.h"
+#include "../Headers/kep_cart.h"
 #include <iostream>
 
 
@@ -37,6 +38,7 @@ void spacecraft::sum_grav(body const& attrac){
         grav_result = grav_result + grav;
         if (grav.mag() > current_max_grav){
             dominant_body_id = attrac.id; // Update the dominant body if this one has a stronger gravitational effect
+            dominant_body_index = attrac.system_index; // Update the index of the dominant body
             parent_pos = attrac.pos; // Update the position of the dominant body
             parent_vel = attrac.vel; // Update the velocity of the dominant body
             current_max_grav = grav.mag();
@@ -45,7 +47,9 @@ void spacecraft::sum_grav(body const& attrac){
     };
 }
 
-void spacecraft::situation_update(std::vector<body> &system){
-    // Update the dominant body based on the current position
+void spacecraft::situation_update(std::vector<body> &system,bool kep_check){
     current_max_grav = 0; // Reset the maximum gravitational effect
+    if(kep_check){
+        orbit_params = cart_to_kep(system[dominant_body_index], pos, vel); // Update the orbital parameters based on the dominant body
+        };
     }

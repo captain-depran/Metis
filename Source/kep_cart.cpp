@@ -1,6 +1,7 @@
 #include "../Headers/vector3D.h"
 #include "../Headers/kep_cart.h"
 #include "../Headers/constants.h"
+#include "../Headers/body.h"
 #include <cmath>
 #include <iostream>
 
@@ -49,3 +50,59 @@ state_vector cart_state(double host_mass, double a, double e, double i, double O
 
 };
 
+kep_state cart_to_kep(body const& parent, vector3D& r, vector3D& v){
+    vector3D rel_r= r - parent.pos;
+    vector3D rel_v= v - parent.vel;
+
+
+    double r_mag = rel_r.mag();
+    double v_mag = rel_v.mag();
+
+    double mu = parent.mass * Gconst;
+
+    // Calculate the angular momentum vector
+    vector3D h= rel_r.cross(rel_v);
+    double h_mag = h.mag(); 
+    // Eccentricity vector
+    vector3D e_vec = ( (rel_v.cross(h)) / mu ) - (rel_r.unit());
+    double e = e_vec.mag();
+
+    //inclination 
+    double i = acos(h.z / h_mag); 
+
+    //Node vector and longitude of the ascending node
+    vector3D k_hat(0, 0, 1);
+    vector3D n = k_hat.cross(h);
+    double n_mag = n.mag();
+
+    double long_asc = atan2(n.y, n.x);
+    if (long_asc < 0) long_asc += 2*PI;  
+
+    //Argument of periapsis
+    double arg_peri = atan2(
+        k_hat.dot(n.cross(e_vec)) / (n_mag * e),  // sin component
+        n.dot(e_vec) / (n_mag * e)                 // cos component
+    );
+    if (arg_peri < 0) arg_peri += 2 * PI;
+
+    // True anomaly
+    double nu = atan2(
+        h.dot(e_vec.cross(rel_r)) / (h_mag * e * r_mag), // sin component
+        rel_r.dot(e_vec) / (r_mag * e)                   // cos component
+    );
+    //std::cout << "nu: " << nu << std::endl;
+    if (nu < 0) nu += 2 * PI;
+
+    // Semi-major axis
+    double energy = (v_mag * v_mag) / 2.0 - mu / r_mag;
+    double a = -mu / (2.0 * energy);
+
+    return {
+        a,          // semi-major axis PASSED
+        e,          // eccentricity PASSED
+        i * 180/PI,          // inclination PASSED
+        long_asc * 180/PI,   // longitude of the ascending node PASSED
+        arg_peri * 180/PI,   // argument of periapsis 
+        nu * 180/PI         // true anomaly  
+    };
+}
