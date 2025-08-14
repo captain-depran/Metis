@@ -3,6 +3,7 @@
 #include "../Headers/kep_cart.h"
 #include "../Headers/spacecraft.h"
 #include "../Headers/constants.h"
+#include "../Headers/event_detect.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -257,14 +258,16 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
 }
 
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
-    enum trigger_type {TIME,PE,AP,NODE,ANOM,UNKNOWN};
+    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TURNBACK,UNKNOWN};
 
     std::map<std::string, trigger_type> trig_map{
         {"TIME", TIME},
+        {"CLA", CLA}, //close approach
         {"PE", PE},
         {"AP", AP},
         {"NODE", NODE},
         {"ANOM", ANOM},
+        {"TURNBACK", TURNBACK},
         {"UNKNOWN", UNKNOWN}
     };
 
@@ -273,6 +276,7 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
         if (line.empty() || line[0] == '#') continue;
 
         else if(line.rfind("MNV",0)==0){
+            trigger_params trig_conditions;
             std::stringstream ss(line);
             std::string item;
             std::vector<std::string> parts;
@@ -282,7 +286,14 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
             vector3D dv=vector3D(std::stod(parts[2]),std::stod(parts[3]),std::stod(parts[4]));
             switch (trig_map.count(parts[5])?trig_map[parts[5]]:UNKNOWN){
                 case TIME:
-                    craft.all_manouvers.push_back(manouver(dv, parts[1], std::stod(parts[6])));
+                    trig_conditions.trigger_time=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],1,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case CLA:
+                    trig_conditions.CLA_threshold=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],2,trig_conditions));
+                    craft.max_mnvr_index++;
                     break;
                 case PE:
                     break;
@@ -291,6 +302,13 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                 case NODE:
                     break;
                 case ANOM:
+                    trig_conditions.tgt_anom=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],4,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case TURNBACK:
+                    craft.all_manouvers.push_back(manouver(dv,parts[1],3,trig_conditions));
+                    craft.max_mnvr_index++;
                     break;
                 default:
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;

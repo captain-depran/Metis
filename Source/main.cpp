@@ -56,12 +56,8 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
     };
     
     for (int step = 0; step < (loop_size); step++){
+            craft.situation_update(system,current_t);
             current_t+=stepsize;
-            for (manouver &mnvr:craft.all_manouvers){
-                if (current_t >= mnvr.time && mnvr.executed==false){
-                    craft.perform_manouver(mnvr,current_t);
-                }
-            }
             craft.grav_result.zero();
             for (body &obj:system){
                 obj.grav_result.zero();
@@ -82,7 +78,6 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
                 obj.pos_update(stepsize,step);
             }
             craft.pos_update(stepsize,step);
-            craft.situation_update(system,false);
             
         }
 };
@@ -132,7 +127,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
-    craft.situation_update(system,true);
+    craft.situation_update(system,current_t);
     run_loop(craft,system,block_size,stepsize,current_t);
 
     // Rest of Blocks

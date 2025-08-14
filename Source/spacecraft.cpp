@@ -2,13 +2,15 @@
 #include "../Headers/vector3D.h"
 #include "../Headers/spacecraft.h"
 #include "../Headers/kep_cart.h"
+#include "../Headers/event_detect.h"
 #include <iostream>
 
 
-manouver::manouver(vector3D dv_,std::string label_,double time_){
+manouver::manouver(vector3D dv_,std::string label_,int trigger_type_, trigger_params trig_conditions_){
     dv=dv_;
     label=label_;
-    time=time_;
+    trigger_type=trigger_type_;
+    trig_conditions=trig_conditions_;
 };
 
 vector3D spacecraft::inertial_dv(manouver mnvr, vector3D parent_pos, vector3D parent_vel){
@@ -27,9 +29,10 @@ vector3D spacecraft::inertial_dv(manouver mnvr, vector3D parent_pos, vector3D pa
 void spacecraft::perform_manouver(manouver& mnvr,double& current_t){
     vector3D dv_inertial = inertial_dv(mnvr, parent_pos, parent_vel);
     vel=vel+dv_inertial;
-    mnvr.executed_time=current_t;
+    mnvr.executed_time=last_event_time=current_t;
     mnvr.executed=true; // Mark the manouver as executed
     complete_manouvers.push_back(mnvr); // Store the executed manouver
+    next_mnvr_index++; // Move to the next manouver
 }
 void spacecraft::sum_grav(body const& attrac){
     bool same_body=(attrac.id!=id);
@@ -47,9 +50,41 @@ void spacecraft::sum_grav(body const& attrac){
     };
 }
 
-void spacecraft::situation_update(std::vector<body> &system,bool kep_check){
+//Browses the spacecraft's events list and detects if an event is due to be triggered. Also, housekeeping
+void spacecraft::situation_update(std::vector<body> &system, double& current_t){
     current_max_grav = 0; // Reset the maximum gravitational effect
-    if(kep_check){
-        orbit_params = cart_to_kep(system[dominant_body_index], pos, vel); // Update the orbital parameters based on the dominant body
-        };
-    }
+    if(next_mnvr_index<=max_mnvr_index){
+        manouver& mnvr= all_manouvers[next_mnvr_index];
+        if (!mnvr.executed){
+            switch (mnvr.trigger_type){
+                case 1: // Time since last event
+                    if (check_time(current_t-last_event_time, mnvr.trig_conditions.trigger_time)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                case 2: // Close Approach
+                    if (check_close_approach(pos,vel,dominant_body_index,system,mnvr.trig_conditions.CLA_threshold)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                case 3: // Turnback towards body
+                    if (check_turnback(pos,vel,dominant_body_index,system)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                case 4: //True Anomaly
+                    if (check_anomaly(mnvr.trig_conditions.tgt_anom,pos,vel,dominant_body_index,system)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                default:
+                    std::cout<<"ERROR: Unknown Trigger"<<std::endl;
+                    break;
+
+            }
+        }
+    }   
+}
+
+
+    //orbit_params = cart_to_kep(system[dominant_body_index], pos, vel); // Update the orbital parameters based on the dominant body
