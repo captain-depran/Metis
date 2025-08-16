@@ -87,10 +87,10 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
                     current.mass=std::stod(value);
                     break;
                 case RADIUS:
-                    current.radius=std::stod(value);
+                    current.radius=(std::stod(value)*1000);
                     break;                    
                 case SEMI_MAJ:
-                    current.semi_maj=std::stod(value);
+                    current.semi_maj=(std::stod(value)*1000);
                     break;                
                 case ECC:
                     current.ecc=std::stod(value);
@@ -205,10 +205,10 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
                     sat_params.mass=std::stod(value);
                     break;
                 case RADIUS:
-                    sat_params.radius=std::stod(value);
+                    sat_params.radius=std::stod(value); //SPACECRAFT SIZE PASSED IN M
                     break;                    
                 case SEMI_MAJ:
-                    sat_params.semi_maj=std::stod(value);
+                    sat_params.semi_maj=(std::stod(value)*1000);
                     break;                
                 case ECC:
                     sat_params.ecc=std::stod(value);
