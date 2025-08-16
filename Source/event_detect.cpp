@@ -15,6 +15,7 @@ TRIGGER TYPES
 2 - Close Approach Trigger (Vehicle must already be approaching the body)
 3 - Turnback Trigger (Vehicle is moving towards the body)
 4 - True Anomaly Trigger
+5 - Dominant Attractive Body change Trigger
 */
 
 
@@ -81,4 +82,13 @@ bool check_anomaly(double tgt_anom, vector3D craft_pos, vector3D craft_vel,int d
     }
     else{return false;};
 
+};
+
+bool check_bodyswap(int dom_body_index,int last_index){
+    if (dom_body_index!=last_index){
+        return true;
+    }
+    else{
+        return false;
+    };
 };

@@ -77,6 +77,13 @@ void spacecraft::situation_update(std::vector<body> &system, double& current_t){
                         perform_manouver(mnvr,current_t);
                     };
                     break;
+                case 5: //Grav Dominant body Swap
+                    if (mnvr.trig_conditions.last_dom_body_index!=-1 //-1 indicates starting conditions
+                        && check_bodyswap(dominant_body_index,mnvr.trig_conditions.last_dom_body_index)){ 
+                        perform_manouver(mnvr,current_t);
+                    }
+                    mnvr.trig_conditions.last_dom_body_index = dominant_body_index;
+                    break;
                 default:
                     std::cout<<"ERROR: Unknown Trigger"<<std::endl;
                     break;

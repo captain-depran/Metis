@@ -258,7 +258,7 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
 }
 
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
-    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TURNBACK,UNKNOWN};
+    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TNBK,BDYSWP,UNKNOWN};
 
     std::map<std::string, trigger_type> trig_map{
         {"TIME", TIME},
@@ -267,7 +267,8 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
         {"AP", AP},
         {"NODE", NODE},
         {"ANOM", ANOM},
-        {"TURNBACK", TURNBACK},
+        {"TNBK", TNBK}, //Turnback towards parent
+        {"BDYSWP", BDYSWP}, //Swap of grav dominant body
         {"UNKNOWN", UNKNOWN}
     };
 
@@ -306,8 +307,13 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                     craft.all_manouvers.push_back(manouver(dv, parts[1],4,trig_conditions));
                     craft.max_mnvr_index++;
                     break;
-                case TURNBACK:
+                case TNBK:
                     craft.all_manouvers.push_back(manouver(dv,parts[1],3,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case BDYSWP:
+                    trig_conditions.last_dom_body_index=-1;
+                    craft.all_manouvers.push_back(manouver(dv,parts[1],5,trig_conditions));
                     craft.max_mnvr_index++;
                     break;
                 default:
