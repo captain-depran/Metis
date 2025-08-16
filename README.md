@@ -32,13 +32,16 @@ A command is specific as follows -> `MNV : LABEL : PROGRADE : RADIAL : NORMAL : 
 
 `TRIGGER_PARAM` = The parameter for the passed trigger type (See below)
 
-You can specify as many manouvers as you'd like, and in any order. Any untriggerable manouvers won't cause errors, they just won't happen.
+You can specify as many manouvers as you'd like, in the sequence of execution. Any untriggerable manouvers won't cause errors, they just won't happen.
 
 Example:  `MNV:Earth Transfer:2500:150:0:TIME:15000`
 
 ### Triggers
 
-- `TIME` -> Takes seconds as a parameter, will trigger at simulation time equal to this value (0 being start)
+- `TIME` -> Takes seconds as a parameter, will trigger this long after last event
+- `CLA` -> Takes a detection threshold in M as a parameter, will trigger at the point of closest approach during the approach to a body
+- `TURNBACK` -> Takes no parameter, will trigger at the point the craft starts falling back towards an object it is receeding from
+- `ANOM` -> Takes degrees as a parameter, will trigger at a true anomaly equal to this value (or just past it). 0 is Periapsis, 180 is apoapsis
 
 ## NOTES AND CAVEATS
 - Python requires Plotly for 3d plots, but there is a matplotlib version commented in the code
