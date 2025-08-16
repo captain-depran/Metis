@@ -17,10 +17,11 @@ class manouver{
         std::string label;
         int trigger_type;
         trigger_params trig_conditions;
-
+        bool is_coast;
         double executed_time;
         bool executed=false;
         manouver(vector3D dv_,std::string label_,int trigger_type_, trigger_params trig_conditions_);
+        manouver(std::string label_,int trigger_type_, trigger_params trig_conditions_);
 };
 
 

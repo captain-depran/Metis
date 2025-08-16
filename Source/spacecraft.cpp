@@ -11,6 +11,14 @@ manouver::manouver(vector3D dv_,std::string label_,int trigger_type_, trigger_pa
     label=label_;
     trigger_type=trigger_type_;
     trig_conditions=trig_conditions_;
+    is_coast=false;
+};
+
+manouver::manouver(std::string label_,int trigger_type_, trigger_params trig_conditions_){
+    label=label_;
+    trigger_type=trigger_type_;
+    trig_conditions=trig_conditions_;
+    is_coast=true;
 };
 
 vector3D spacecraft::inertial_dv(manouver mnvr, vector3D parent_pos, vector3D parent_vel){

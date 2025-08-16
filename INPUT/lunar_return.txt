@@ -12,9 +12,11 @@ END
 
 #Events -> (event type):(event label):(event parameters)
 #i.e Manouvers -> MNV:(label):(Prograde):(Radial):(Normal):(Trigger Type):(Trigger Param)
+# Coasting/waiting for events -> COAST:(label):(Trigger Type):(Trigger Param)
 
-MNV:FULL ORBIT:0:0:0:ANOM:180
+
+COAST:FULL ORBIT:ANOM:180
 MNV:EARTH RETURN:800:0:0:ANOM:100
-MNV:BODY SWAP:0:0:0:BDYSWP
-MNV:PERIGEE:-600:0:0:ANOM:5
+COAST:BODY SWAP:BDYSWP
+MNV:PERIGEE CAPTURE:-600:0:0:ANOM:5
 

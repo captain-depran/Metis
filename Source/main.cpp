@@ -180,10 +180,13 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     cout << "\nExecution Time: "<< duration.count() << " milliseconds" <<endl;
     cout << "---------------------------------"<<endl;
     for (manouver &mnvr:craft.complete_manouvers){
-        if (mnvr.executed==true){
+        if (mnvr.executed==true && !mnvr.is_coast){
             cout << "MANOUVER "<<mnvr.label<<" EXECUTED AT "<<formatTime(mnvr.executed_time)<<endl;
         }
-    }
+        else if (mnvr.executed==true && mnvr.is_coast){
+            cout << "COAST EVENT "<<mnvr.label<<" ENDED AT "<<formatTime(mnvr.executed_time)<<endl;
+        };
+    };
 };
 
 

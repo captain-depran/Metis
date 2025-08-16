@@ -320,6 +320,50 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
                     break;
             }
+        }
+        else if(line.rfind("COAST",0)==0){
+            trigger_params trig_conditions;
+            std::stringstream ss(line);
+            std::string item;
+            std::vector<std::string> parts;
+            while (std::getline(ss,item,':')){
+                parts.push_back(item);
+            }
+            switch (trig_map.count(parts[2])?trig_map[parts[2]]:UNKNOWN){
+                case TIME:
+                    trig_conditions.trigger_time=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],1,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case CLA:
+                    trig_conditions.CLA_threshold=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],2,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case PE:
+                    break;
+                case AP:
+                    break;
+                case NODE:
+                    break;
+                case ANOM:
+                    trig_conditions.tgt_anom=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],4,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case TNBK:
+                    craft.all_manouvers.push_back(manouver(parts[1],3,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case BDYSWP:
+                    trig_conditions.last_dom_body_index=-1;
+                    craft.all_manouvers.push_back(manouver(parts[1],5,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                default:
+                    std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
+                    break;
+            }
         };
     }
 
