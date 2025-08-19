@@ -36,7 +36,6 @@ bool check_close_approach(vector3D craft_pos, vector3D craft_vel,int dom_body_in
     vector3D rel_v= craft_vel - system[dom_body_index].vel;
     if (rel_r.mag() < threshold){
         double dot_check = rel_r.dot(rel_v);
-        std::cout<<dot_check<<std::endl;
         if (dot_check >= 0){
             return true;
         }
