@@ -93,6 +93,8 @@ void block_save(spacecraft craft,vector<body> system,int block_size){
 void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq,vector<int> &body_ids){
     thread block_writer;
     vector <body> system;
+    std::map<std::string,int> sys_index_map;
+
     double current_t=0;
 
     int step_count = timespace/stepsize;
@@ -101,8 +103,9 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     int remainder = step_count%block_size;
     
 
-    load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
+    load_body_file("INPUT/bodies (sun_earth_moon).cfg",system,sys_index_map);
     spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
+    craft.assign_sys_map(sys_index_map);
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();

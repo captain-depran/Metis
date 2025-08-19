@@ -33,6 +33,7 @@ class spacecraft : public body{
         int dominant_body_index=0;
         double last_event_time=0;
 
+        std::map<std::string,int> sys_index_map;
         kep_state orbit_params;
         vector3D parent_pos;
         vector3D parent_vel; 
@@ -47,6 +48,7 @@ class spacecraft : public body{
         void perform_manouver(manouver& mnvr,double& current_t);
 
         //House Keeping functions
+        void spacecraft::assign_sys_map(std::map<std::string,int> passed_map);
         void spacecraft::situation_update(std::vector<body> &system, double& current_t);
 };
 #endif

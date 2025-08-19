@@ -21,6 +21,10 @@ manouver::manouver(std::string label_,int trigger_type_, trigger_params trig_con
     is_coast=true;
 };
 
+void spacecraft::assign_sys_map(std::map<std::string,int> passed_map){
+    sys_index_map=passed_map;
+};
+
 vector3D spacecraft::inertial_dv(manouver mnvr, vector3D parent_pos, vector3D parent_vel){
     vector3D r_hat = (pos-parent_pos).unit();          // Radial direction
     vector3D t_hat = (vel-parent_vel).unit();          // Along-track
@@ -61,6 +65,8 @@ void spacecraft::sum_grav(body const& attrac){
 //Browses the spacecraft's events list and detects if an event is due to be triggered. Also, housekeeping
 void spacecraft::situation_update(std::vector<body> &system, double& current_t){
     current_max_grav = 0; // Reset the maximum gravitational effect
+    int tgt_index;
+    int parent_index;
     if(next_mnvr_index<=max_mnvr_index){
         manouver& mnvr= all_manouvers[next_mnvr_index];
         if (!mnvr.executed){
@@ -92,6 +98,15 @@ void spacecraft::situation_update(std::vector<body> &system, double& current_t){
                     }
                     mnvr.trig_conditions.last_dom_body_index = dominant_body_index;
                     break;
+                case 6: //Relative Phase angle
+                    // NEED TO STREAMLINE EXTRACTION/REFERENCE TO CENTRAL ORBITAL BODY FOR SELF AND TARGET
+                    tgt_index=sys_index_map[mnvr.trig_conditions.tgt_name];
+                    parent_index=sys_index_map[mnvr.trig_conditions.parent_name];
+                    if (check_phase_angle(mnvr.trig_conditions.tgt_phase_angle,pos,system[tgt_index].pos,system[parent_index].pos)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                
                 default:
                     std::cout<<"ERROR: Unknown Trigger"<<std::endl;
                     break;
