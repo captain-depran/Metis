@@ -62,6 +62,14 @@ void spacecraft::sum_grav(body const& attrac){
     };
 }
 
+void spacecraft::print_orbit(std::vector<body> &system){
+    kep_state orbital_params=cart_to_kep(system[dominant_body_index],pos,vel);
+    std::cout<<"SEMI-MAJOR AXIS: "<<orbital_params.semi_maj<<std::endl;
+    std::cout<<"ECCENTRICITY: "<<orbital_params.ecc<<std::endl;
+    std::cout<<"INCLINATION: "<<orbital_params.inc<<std::endl;
+    std::cout<<"PARENT BODY: "<<system[dominant_body_index].name<<std::endl;
+};
+
 //Browses the spacecraft's events list and detects if an event is due to be triggered. Also, housekeeping
 void spacecraft::situation_update(std::vector<body> &system, double& current_t){
     current_max_grav = 0; // Reset the maximum gravitational effect

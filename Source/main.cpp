@@ -190,6 +190,8 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
             cout << "COAST EVENT "<<mnvr.label<<" ENDED AT "<<formatTime(mnvr.executed_time)<<endl;
         };
     };
+    cout << "---------------------------------"<<endl;
+    craft.print_orbit(system);
 };
 
 

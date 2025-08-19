@@ -48,6 +48,7 @@ class spacecraft : public body{
         void perform_manouver(manouver& mnvr,double& current_t);
 
         //House Keeping functions
+        void spacecraft::print_orbit(std::vector<body> &system);
         void spacecraft::assign_sys_map(std::map<std::string,int> passed_map);
         void spacecraft::situation_update(std::vector<body> &system, double& current_t);
 };
