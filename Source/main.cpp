@@ -5,7 +5,7 @@
 #include "../Headers/vector3D.h"
 #include "../Headers/file_tools.h"
 #include "../Headers/frame_tools.h"
-#include "../Headers/kep_to_cart.h"
+#include "../Headers/kep_cart.h"
 #include "../Headers/body.h"
 #include "../Headers/spacecraft.h"
 #include <fstream>
@@ -56,12 +56,8 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
     };
     
     for (int step = 0; step < (loop_size); step++){
+            craft.situation_update(system,current_t);
             current_t+=stepsize;
-            for (manouver &mnvr:craft.all_manouvers){
-                if (current_t >= mnvr.time && mnvr.executed==false){
-                    craft.perform_manouver(mnvr,current_t);
-                }
-            }
             craft.grav_result.zero();
             for (body &obj:system){
                 obj.grav_result.zero();
@@ -78,12 +74,11 @@ void run_loop(spacecraft& craft,vector<body> &system, int loop_size, double step
                 obj.vel_update(stepsize);
             }
             craft.vel_update(stepsize);
-
             for (body &obj:system){
                 obj.pos_update(stepsize,step);
             }
             craft.pos_update(stepsize,step);
-            craft.situation_update(system);
+            
         }
 };
 
@@ -98,6 +93,8 @@ void block_save(spacecraft craft,vector<body> system,int block_size){
 void run_sim(string body_file,string sat_file,double timespace, double stepsize, int block_size, bool log_flag,int log_freq,vector<int> &body_ids){
     thread block_writer;
     vector <body> system;
+    std::map<std::string,int> sys_index_map;
+
     double current_t=0;
 
     int step_count = timespace/stepsize;
@@ -106,8 +103,9 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     int remainder = step_count%block_size;
     
 
-    load_body_file("INPUT/bodies (sun_earth_moon).cfg",system);
+    load_body_file("INPUT/bodies (sun_earth_moon).cfg",system,sys_index_map);
     spacecraft craft=load_craft_file("INPUT/test_sat.cfg",system);
+    craft.assign_sys_map(sys_index_map);
     int sums_done=0;
 
     auto total_start= high_resolution_clock::now();
@@ -120,7 +118,6 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     file_wipe(craft.id);
     body_ids.push_back(craft.id);
     craft.grav_result.zero();
-
     // Leapfrog velocity offset init
     for (body &obj:system){
         obj.grav_result.zero();
@@ -133,7 +130,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     craft.init_vel(stepsize);
 
     // Block 1 run
-    craft.situation_update(system);
+    craft.situation_update(system,current_t);
     run_loop(craft,system,block_size,stepsize,current_t);
 
     // Rest of Blocks
@@ -186,10 +183,15 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
     cout << "\nExecution Time: "<< duration.count() << " milliseconds" <<endl;
     cout << "---------------------------------"<<endl;
     for (manouver &mnvr:craft.complete_manouvers){
-        if (mnvr.executed==true){
+        if (mnvr.executed==true && !mnvr.is_coast){
             cout << "MANOUVER "<<mnvr.label<<" EXECUTED AT "<<formatTime(mnvr.executed_time)<<endl;
         }
-    }
+        else if (mnvr.executed==true && mnvr.is_coast){
+            cout << "COAST EVENT "<<mnvr.label<<" ENDED AT "<<formatTime(mnvr.executed_time)<<endl;
+        };
+    };
+    cout << "---------------------------------"<<endl;
+    craft.print_orbit(system);
 };
 
 

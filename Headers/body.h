@@ -28,6 +28,7 @@ class body{
         std::string name;
         int parent_id=1;
         int id;
+        int system_index=0;
         vector3D pos;
         vector3D grav_result;
         std::vector<vector3D> pos_log;

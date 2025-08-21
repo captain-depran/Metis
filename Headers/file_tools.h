@@ -19,7 +19,7 @@ struct sim_settings{
 
 std::string file_string(int id);
 void file_wipe(int id);
-void load_body_file(std::string file_name,std::vector<body>& output_body_list);
+void load_body_file(std::string file_name,std::vector<body>& output_body_list,std::map<std::string,int>& index_map);
 spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies);
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft);
 sim_settings load_settings_file(std::string file_name);

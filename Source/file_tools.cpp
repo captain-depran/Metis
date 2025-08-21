@@ -1,8 +1,9 @@
 #include "../Headers/file_tools.h"
 #include "../Headers/body.h"
-#include "../Headers/kep_to_cart.h"
+#include "../Headers/kep_cart.h"
 #include "../Headers/spacecraft.h"
 #include "../Headers/constants.h"
+#include "../Headers/event_detect.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -23,7 +24,7 @@ void file_wipe(int id){
     log_file.close();
 }
 
-void load_body_file(std::string file_name,std::vector<body>& output_body_list){
+void load_body_file(std::string file_name,std::vector<body>& output_body_list,std::map<std::string,int>& index_map){
     body_import current;
     std::vector<body_import> imported_bodies;
     std::ifstream body_file(file_name);
@@ -86,10 +87,10 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
                     current.mass=std::stod(value);
                     break;
                 case RADIUS:
-                    current.radius=std::stod(value);
+                    current.radius=(std::stod(value)*1000);
                     break;                    
                 case SEMI_MAJ:
-                    current.semi_maj=std::stod(value);
+                    current.semi_maj=(std::stod(value)*1000);
                     break;                
                 case ECC:
                     current.ecc=std::stod(value);
@@ -113,7 +114,9 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
         }   
     }
     body_file.close();
+    int current_index=0;
     for (body_import& obj:imported_bodies){
+        
         if (obj.parent=="NONE"||obj.parent==""){
             host_mass = obj.mass;
             state_vector inject_state=cart_state(host_mass,obj.semi_maj,obj.ecc,obj.inc,obj.long_asc_node,obj.arg_peri,obj.true_anom);
@@ -132,7 +135,12 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list){
         }
         body new_body=body(obj.id,obj.mass,obj.r,obj.v);
         new_body.set_name(obj.name);
+        new_body.system_index=current_index;
         output_body_list.push_back(new_body);
+
+        index_map[obj.name] = current_index;
+
+        current_index++;
     }
     std::cout<<"BODY LOADING COMPLETED!"<<std::endl;
     
@@ -200,10 +208,10 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
                     sat_params.mass=std::stod(value);
                     break;
                 case RADIUS:
-                    sat_params.radius=std::stod(value);
+                    sat_params.radius=std::stod(value); //SPACECRAFT SIZE PASSED IN M
                     break;                    
                 case SEMI_MAJ:
-                    sat_params.semi_maj=std::stod(value);
+                    sat_params.semi_maj=(std::stod(value)*1000);
                     break;                
                 case ECC:
                     sat_params.ecc=std::stod(value);
@@ -253,14 +261,18 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
 }
 
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
-    enum trigger_type {TIME,PE,AP,NODE,ANOM,UNKNOWN};
+    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TNBK,BDYSWP,PHASE,UNKNOWN};
 
     std::map<std::string, trigger_type> trig_map{
         {"TIME", TIME},
+        {"CLA", CLA}, //close approach
         {"PE", PE},
         {"AP", AP},
         {"NODE", NODE},
         {"ANOM", ANOM},
+        {"TNBK", TNBK}, //Turnback towards parent
+        {"BDYSWP", BDYSWP}, //Swap of grav dominant body
+        {"PHASE", PHASE}, //Phase angle
         {"UNKNOWN", UNKNOWN}
     };
 
@@ -269,6 +281,7 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
         if (line.empty() || line[0] == '#') continue;
 
         else if(line.rfind("MNV",0)==0){
+            trigger_params trig_conditions;
             std::stringstream ss(line);
             std::string item;
             std::vector<std::string> parts;
@@ -278,7 +291,14 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
             vector3D dv=vector3D(std::stod(parts[2]),std::stod(parts[3]),std::stod(parts[4]));
             switch (trig_map.count(parts[5])?trig_map[parts[5]]:UNKNOWN){
                 case TIME:
-                    craft.all_manouvers.push_back(manouver(dv, parts[1], std::stod(parts[6])));
+                    trig_conditions.trigger_time=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],1,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case CLA:
+                    trig_conditions.CLA_threshold=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],2,trig_conditions));
+                    craft.max_mnvr_index++;
                     break;
                 case PE:
                     break;
@@ -287,6 +307,76 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                 case NODE:
                     break;
                 case ANOM:
+                    trig_conditions.tgt_anom=std::stod(parts[6]);
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],4,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case TNBK:
+                    craft.all_manouvers.push_back(manouver(dv,parts[1],3,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case BDYSWP:
+                    trig_conditions.last_dom_body_index=-1;
+                    craft.all_manouvers.push_back(manouver(dv,parts[1],5,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case PHASE:
+                    trig_conditions.tgt_name=parts[6];
+                    trig_conditions.tgt_phase_angle=std::stod(parts[7]);
+                    trig_conditions.parent_name=parts[8];
+                    craft.all_manouvers.push_back(manouver(dv,parts[1],6,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                default:
+                    std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
+                    break;
+            }
+        }
+        else if(line.rfind("COAST",0)==0){
+            trigger_params trig_conditions;
+            std::stringstream ss(line);
+            std::string item;
+            std::vector<std::string> parts;
+            while (std::getline(ss,item,':')){
+                parts.push_back(item);
+            }
+            switch (trig_map.count(parts[2])?trig_map[parts[2]]:UNKNOWN){
+                case TIME:
+                    trig_conditions.trigger_time=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],1,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case CLA:
+                    trig_conditions.CLA_threshold=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],2,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case PE:
+                    break;
+                case AP:
+                    break;
+                case NODE:
+                    break;
+                case ANOM:
+                    trig_conditions.tgt_anom=std::stod(parts[3]);
+                    craft.all_manouvers.push_back(manouver(parts[1],4,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case TNBK:
+                    craft.all_manouvers.push_back(manouver(parts[1],3,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case BDYSWP:
+                    trig_conditions.last_dom_body_index=-1;
+                    craft.all_manouvers.push_back(manouver(parts[1],5,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case PHASE:
+                    trig_conditions.tgt_name=parts[3];
+                    trig_conditions.tgt_phase_angle=std::stod(parts[4]);
+                    trig_conditions.parent_name=parts[5];
+                    craft.all_manouvers.push_back(manouver(parts[1],6,trig_conditions));
+                    craft.max_mnvr_index++;
                     break;
                 default:
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;

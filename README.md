@@ -4,7 +4,7 @@ Began its life in python, this represents my port to C++
 
 Included is a trajectory_viewer python program to allow you to visualise any data that the code spits out, and an example bodies.cfg input file containing orbital parameters for the earth and the moon.
 
-Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders, or just grab the zip from the releases page!
+Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders, or the latest release. If you are reading this on the dev branch, I won't always have a release bundled of the latest version, however just download the aforementioned files/folders and put them in a common directory. I will never intentionally push a completely non-unfunctional version to the dev branch (i.e. if I am backing up or saving my work, it will always be somewhat functional), however things happen so proceed at your own risk.
 
 ## How do I use this?
 1) Open SIM_CONFIG.cfg and change the parameters
@@ -15,30 +15,9 @@ Only need to download the .py file, the .exe file and the INPUT/OUTPUT folders, 
 6) Wait, get a cup of tea, etc etc
 7) Plot the results with the packaged python program!
 
-## How Do I define a Manouver?
-In your spacecraft file, after the craft's intial conditions are specified, the software will look for specific event tags to parse. Currently the only one is 'MNV', which is short hand for 'Manouver'.
-
-A command is specific as follows -> `MNV : LABEL : PROGRADE : RADIAL : NORMAL : TRIGGER_TYPE : TRIGGER_PARAM`
-
-`LABEL` = A string labelling the manouver for output tracking
-
-`PROGRADE` = Magnitude of manouver along the direction of travel
-
-`RADIAL` = Magnitude of manouver away ('outwards') from central body
-
-`NORMAL` = Magnitude of manouver 'upwards' from the orbital plane formed by the prograde and radial directions
-
-`TRIGGER_TYPE` = What type of trigger the manouver has (See below)
-
-`TRIGGER_PARAM` = The parameter for the passed trigger type (See below)
-
-You can specify as many manouvers as you'd like, and in any order. Any untriggerable manouvers won't cause errors, they just won't happen.
-
-Example:  `MNV:Earth Transfer:2500:150:0:TIME:15000`
-
-### Triggers
-
-- `TIME` -> Takes seconds as a parameter, will trigger at simulation time equal to this value (0 being start)
+## Where do I get started?
+Read this: https://github.com/captain-depran/Metis/wiki/Mission-Sequences-(and-a-Quick-Tutorial)
+(Its a walkthrough of a simple mission profile)
 
 ## NOTES AND CAVEATS
 - Python requires Plotly for 3d plots, but there is a matplotlib version commented in the code

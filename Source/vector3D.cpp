@@ -29,7 +29,8 @@ void vector3D::zero(){
 }
 
 vector3D vector3D::unit(){
-    vector3D unit_vec(x/mag(),y/mag(),z/mag());
+    double magnitude = mag();
+    vector3D unit_vec(x/magnitude,y/magnitude,z/magnitude);
     return unit_vec;
 }
 
@@ -39,6 +40,10 @@ vector3D vector3D::cross(vector3D const& obj){
     result.y=(z*obj.x)-(x*obj.z);
     result.z=(x*obj.y)-(y*obj.x);
     return result;
+}
+
+double vector3D::dot(vector3D const& obj){
+    return (x*obj.x + y*obj.y + z*obj.z);
 }
 
 vector3D vector3D::operator+(vector3D const& obj){
