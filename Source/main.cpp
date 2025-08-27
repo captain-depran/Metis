@@ -234,13 +234,43 @@ int main(){
         settings.log_freq,
         body_ids);
 
+
+    //PROTOTYPE LOOPING FRAME CENTERING, EXIT ON COMMAND
+
     cout << "---------------------------------"<<endl;
-    cout << "Frame Centering in progress..." <<endl;
+    cout << "Default (ID: "<<settings.core_body_id<<") Frame Centering in progress..." <<endl;
     for (int &id:body_ids){
         frame_center(settings.core_body_id,id,step_count);
     };
     cout << "---------------------------------"<<endl;
 
+    int choice_id=0;
+    bool valid_id;
+    while (choice_id != -1){
+        valid_id=false;
+        cout << "Enter ID to center on (or -1 to quit): ";
+        cin >> choice_id;
+        if (choice_id==-1){
+            break;
+        };
+        for (int &id:body_ids){
+            if (id==choice_id){
+                valid_id=true;
+                break;
+            };
+        };
+        if (valid_id==true){
+            cout << "---------------------------------"<<endl;
+            cout << "ID: "<<choice_id<<" Frame Centering in progress..." <<endl;
+            for (int &id:body_ids){
+                frame_center(choice_id,id,step_count);
+            };
+            cout << "---------------------------------"<<endl;
+        }
+        else{cout<<"INVALID ID!"<<endl;};
+    
+    };
+    cout<<"GOODBYE!"<<endl;
 
     
     /*
@@ -250,8 +280,9 @@ int main(){
     frame_swap(7,8,10,step_count);
     cout << "---------------------------------"<<endl;
     */
-    
+    /*
     cout <<"DONE! Press ENTER to exit."<<endl;
     cin.ignore(); // Wait for user input before exiting
     return 0;
+    */
 }
