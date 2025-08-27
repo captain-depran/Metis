@@ -10,7 +10,7 @@ pio.renderers.default='browser'
 current_wd=pathlib.Path().absolute()
 
 
-host_data=np.fromfile(current_wd/"OUTPUT/1_centered.bin",dtype=np.float64)
+host_data=np.fromfile(current_wd/"OUTPUT/2_centered.bin",dtype=np.float64)
 moon_data=np.fromfile(current_wd/"OUTPUT/3_centered.bin",dtype=np.float64)
 sat_data=np.fromfile(current_wd/"OUTPUT/99_centered.bin",dtype=np.float64)
 
@@ -32,6 +32,7 @@ sat_pos = pd.DataFrame(sat_pos, columns=['x', 'y', 'z'])
 
 fig = go.Figure()   
 fig.add_trace(go.Scatter3d(x=[0], y=[0],z=[0]))
+fig.add_trace(go.Scatter3d(x=host_pos["x"][::100], y=host_pos["y"][::100],z=host_pos["z"][::100], mode='lines'))
 fig.add_trace(go.Scatter3d(x=moon_pos["x"][::100], y=moon_pos["y"][::100],z=moon_pos["z"][::100], mode='lines'))
 fig.add_trace(go.Scatter3d(x=sat_pos["x"][::100], y=sat_pos["y"][::100],z=sat_pos["z"][::100], mode='lines'))
 #fig.add_trace(go.Scatter3d(x=roid_pos["x"][::1], y=roid_pos["y"][::1],z=roid_pos["z"][::1], mode='lines'))
