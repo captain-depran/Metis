@@ -18,6 +18,8 @@
 using namespace std;
 using namespace std::chrono;
 
+string metis_version = "Metis 0.4.0 dev-1";
+
 // Function to format time in days, hours, minutes, and seconds, courtesy of the internet
 string formatTime(double totalSeconds) {
     // Separate integer and fractional parts
@@ -196,6 +198,7 @@ void run_sim(string body_file,string sat_file,double timespace, double stepsize,
 
 
 int main(){
+    cout<<"Ver: "<<metis_version<<endl;
     vector<int> body_ids;
     bool log;
     sim_settings settings=load_settings_file("INPUT/SIM_CONFIG.cfg");
