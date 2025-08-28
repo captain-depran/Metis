@@ -5,6 +5,7 @@
 #include "../Headers/event_detect.h"
 #include <iostream>
 
+//Standard manouver
 
 manouver::manouver(vector3D dv_,std::string label_,int trigger_type_, trigger_params trig_conditions_){
     dv=dv_;
@@ -14,11 +15,14 @@ manouver::manouver(vector3D dv_,std::string label_,int trigger_type_, trigger_pa
     is_coast=false;
 };
 
+//0 dv manouver (short cut for events)
+
 manouver::manouver(std::string label_,int trigger_type_, trigger_params trig_conditions_){
     label=label_;
     trigger_type=trigger_type_;
     trig_conditions=trig_conditions_;
     is_coast=true;
+
 };
 
 void spacecraft::assign_sys_map(std::map<std::string,int> passed_map){
@@ -68,6 +72,7 @@ void spacecraft::print_orbit(std::vector<body> &system){
     std::cout<<"ECCENTRICITY: "<<orbital_params.ecc<<std::endl;
     std::cout<<"INCLINATION: "<<orbital_params.inc<<std::endl;
     std::cout<<"PARENT BODY: "<<system[dominant_body_index].name<<std::endl;
+    std::cout<<"TRUE ANOMALY: "<<orbit_params.true_anom<<std::endl;
 };
 
 //Browses the spacecraft's events list and detects if an event is due to be triggered. Also, housekeeping
