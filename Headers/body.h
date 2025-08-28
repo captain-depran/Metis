@@ -25,6 +25,7 @@ struct body_import{
 class body{
     public:
         double mass;
+        double radius=0;
         std::string name;
         int parent_id=1;
         int id;
@@ -38,6 +39,7 @@ class body{
         body(int id_,double mass_,vector3D r, vector3D v);
         body(int id_,double mass_,double x, double y, double z, double vx, double vy, double vz);
         void set_name(std::string name_);
+        void set_size(double radius_);
         vector3D grav_accel(body const& attrac);
         virtual void sum_grav(body const& attrac);
         void vel_update(double dt);

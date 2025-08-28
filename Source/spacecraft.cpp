@@ -120,6 +120,12 @@ void spacecraft::situation_update(std::vector<body> &system, double& current_t){
                     };
                     break;
                 
+                case 7: //Impact with body
+                    if (check_collision(pos,system[dominant_body_index].pos,radius,system[dominant_body_index].radius)){
+                        perform_manouver(mnvr,current_t);
+                    };
+                    break;
+                
                 default:
                     std::cout<<"ERROR: Unknown Trigger"<<std::endl;
                     break;

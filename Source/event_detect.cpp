@@ -19,6 +19,7 @@ TRIGGER TYPES
 4 - True Anomaly Trigger
 5 - Dominant Attractive Body change Trigger
 6 - Relative phase angle trigger
+7 - Collision Detection
 */
 
 
@@ -122,3 +123,14 @@ bool check_phase_angle(double tgt_angle, vector3D pos, vector3D other_body_pos, 
         return false;
     };
 }
+
+bool check_collision(vector3D craft_pos, vector3D body_pos, double craft_size, double body_size){
+    vector3D rel_pos=craft_pos-body_pos;
+    double distance = rel_pos.mag();
+    if (craft_size+body_size > distance){
+        return true;
+    }
+    else{
+        return false;
+    };
+};

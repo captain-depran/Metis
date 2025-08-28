@@ -35,6 +35,10 @@ void body::set_name(std::string name_){
     name=name_;
 }
 
+void body::set_size(double radius_){
+    radius=radius_;
+}
+
 vector3D body::grav_accel(body const& attrac){
     auto diff=pos-attrac.pos;
     return diff.unit()*((Gconst*(attrac.mass))/(diff.mag()*diff.mag()))*(-1);

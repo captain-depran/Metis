@@ -135,6 +135,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list,st
         }
         body new_body=body(obj.id,obj.mass,obj.r,obj.v);
         new_body.set_name(obj.name);
+        new_body.set_size(obj.radius);
         new_body.system_index=current_index;
         output_body_list.push_back(new_body);
 
@@ -248,6 +249,7 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
     if (valid_sat){
         spacecraft craft=spacecraft(sat_params.id,sat_params.mass,sat_params.r,sat_params.v);
         craft.set_name(sat_params.name);
+        craft.set_size(sat_params.radius);
         load_mnvrs(sat_file, craft);
         sat_file.close();
         std::cout<<"SPACECRAFT LOADING COMPLETED!"<<std::endl;
@@ -261,7 +263,7 @@ spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies){
 }
 
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
-    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TNBK,BDYSWP,PHASE,UNKNOWN};
+    enum trigger_type {TIME,CLA,PE,AP,NODE,ANOM,TNBK,BDYSWP,PHASE,IMPCT,UNKNOWN};
 
     std::map<std::string, trigger_type> trig_map{
         {"TIME", TIME},
@@ -273,6 +275,7 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
         {"TNBK", TNBK}, //Turnback towards parent
         {"BDYSWP", BDYSWP}, //Swap of grav dominant body
         {"PHASE", PHASE}, //Phase angle
+        {"IMPCT", IMPCT}, //Collision or impact
         {"UNKNOWN", UNKNOWN}
     };
 
@@ -327,6 +330,10 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                     craft.all_manouvers.push_back(manouver(dv,parts[1],6,trig_conditions));
                     craft.max_mnvr_index++;
                     break;
+                case IMPCT:
+                    craft.all_manouvers.push_back(manouver(dv, parts[1],7,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
                 default:
                     std::cout<<"UNKNOWN PARAMETER IN FILE!!"<<std::endl;
                     break;
@@ -376,6 +383,10 @@ void load_mnvrs(std::ifstream& sat_file, spacecraft& craft){
                     trig_conditions.tgt_phase_angle=std::stod(parts[4]);
                     trig_conditions.parent_name=parts[5];
                     craft.all_manouvers.push_back(manouver(parts[1],6,trig_conditions));
+                    craft.max_mnvr_index++;
+                    break;
+                case IMPCT:
+                    craft.all_manouvers.push_back(manouver(parts[1],7,trig_conditions));
                     craft.max_mnvr_index++;
                     break;
                 default:

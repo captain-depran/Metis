@@ -23,5 +23,6 @@ bool check_turnback(vector3D craft_pos, vector3D craft_vel,int dom_body_index, s
 bool check_anomaly(double tgt_anom, vector3D craft_pos, vector3D craft_vel,int dom_body_index, std::vector<body>& system);
 bool check_bodyswap(int dom_body_index,int last_index);
 bool check_phase_angle(double tgt_angle, vector3D pos, vector3D other_body_pos, vector3D parent_pos);
+bool check_collision(vector3D craft_pos, vector3D body_pos, double craft_size, double body_size);
 
 #endif

@@ -18,7 +18,7 @@
 using namespace std;
 using namespace std::chrono;
 
-string metis_version = "Metis 0.4.0 dev-1";
+string metis_version = "Metis 0.4.0 dev-2";
 
 // Function to format time in days, hours, minutes, and seconds, courtesy of the internet
 string formatTime(double totalSeconds) {
