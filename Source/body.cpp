@@ -70,4 +70,12 @@ void body::final_vel(double dt){
     vel=vel-(grav_result*0.5*dt);
 }
 
+void body::pos_from_log(int step){
+    pos=pos_log[step];
+}
 
+void body::vel_from_pos_log(double dt, int step){
+    if (step!=0){
+        vel=(pos_log[step]-pos_log[step-1])/dt;
+    }
+}

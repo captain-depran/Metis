@@ -16,3 +16,5 @@ Prototyping/
 Notes and BS/
 event_detect.obj
 kep_cart.obj
+run_craft_and_prerun_body.obj
+run_bodies_only.obj

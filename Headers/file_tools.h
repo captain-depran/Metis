@@ -23,6 +23,7 @@ void load_body_file(std::string file_name,std::vector<body>& output_body_list,st
 spacecraft load_craft_file(std::string file_name,std::vector<body>&mass_bodies);
 void load_mnvrs(std::ifstream& sat_file, spacecraft& craft);
 sim_settings load_settings_file(std::string file_name);
+std::vector<vector3D> import_positions(const std::string &filename);
 
 
 #endif

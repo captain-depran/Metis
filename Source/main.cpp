@@ -8,6 +8,8 @@
 #include "../Headers/kep_cart.h"
 #include "../Headers/body.h"
 #include "../Headers/spacecraft.h"
+#include "../Headers/run_bodies_only.h"
+#include "../Headers/run_craft_and_prerun_body.h"
 #include <fstream>
 #include <string>
 #include <thread>
@@ -18,7 +20,7 @@
 using namespace std;
 using namespace std::chrono;
 
-string metis_version = "Metis 0.4.0 dev-2";
+string metis_version = "Metis 0.4.0 dev-3";
 
 // Function to format time in days, hours, minutes, and seconds, courtesy of the internet
 string formatTime(double totalSeconds) {
@@ -227,7 +229,7 @@ int main(){
     cout << "---------------------------------"<<endl;
     
 
-
+/*
     run_sim(settings.body_file_name,
         settings.sat_file_name,
         timespace,
@@ -236,7 +238,27 @@ int main(){
         log,
         settings.log_freq,
         body_ids);
+*/
 
+//Prototype setup of running bodies, then running satellite through pre-run bodies
+
+    pre_run_bodies(settings.body_file_name,
+        settings.sat_file_name,
+        timespace,
+        stepsize,
+        block_size,
+        log,
+        settings.log_freq,
+        body_ids);
+
+    run_sat(settings.body_file_name,
+        settings.sat_file_name,
+        timespace,
+        stepsize,
+        block_size,
+        log,
+        settings.log_freq,
+        body_ids);
 
     //PROTOTYPE LOOPING FRAME CENTERING, EXIT ON COMMAND
 

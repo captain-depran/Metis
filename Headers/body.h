@@ -46,6 +46,8 @@ class body{
         void pos_update(double dt,int step);
         void init_vel(double dt);
         void final_vel(double dt);
+        void body::pos_from_log(int step);
+        void body::vel_from_pos_log(double dt,int step);
 };
 
 

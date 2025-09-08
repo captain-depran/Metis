@@ -465,3 +465,30 @@ sim_settings load_settings_file(std::string file_name){
     config_file.close();
     return settings;
 }
+
+std::vector<vector3D> import_positions(const std::string &filename){
+    std::ifstream log_file(filename, std::ios::out | std::ios::binary);
+    if (!log_file) {
+        throw std::runtime_error("Failed to open file: " + filename);
+    }
+
+    log_file.seekg(0, std::ios::end);
+    std::streamsize size = log_file.tellg();
+    log_file.seekg(0, std::ios::beg);
+
+    if (size % sizeof(vector3D) != 0) {
+        throw std::runtime_error("Corrupt file: size not divisible by sizeof(vector3D)");
+    }
+
+    // Work out number of entries
+    size_t num_entries = size / sizeof(vector3D);
+
+    std::vector<vector3D> data(num_entries);
+
+    // Read everything in one shot
+    if (!log_file.read(reinterpret_cast<char*>(data.data()), size)) {
+        throw std::runtime_error("Error reading file: " + filename);
+    }
+
+    return data;
+}
